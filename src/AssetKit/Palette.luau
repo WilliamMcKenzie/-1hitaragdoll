@@ -27,7 +27,7 @@ Palette.Base = {
 	Ground = rgb(196, 201, 76),
 
 	Grass = rgb(201, 207, 72),
-	Dirt = rgb(124, 100, 124),
+	Dirt = rgb(124, 100, 110),
 
 	Trunk = rgb(112, 92, 122),
 	Leaves = { rgb(201, 207, 72), rgb(186, 196, 60), rgb(214, 219, 98), rgb(142, 212, 92) },

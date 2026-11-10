@@ -561,27 +561,29 @@ local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
 end
 
--- House style from QM's other games (ShadowMap, flat sky, exposure 0.5,
--- contrast 0.05 / saturation 0.25), with shadows on because the reference has them.
+-- Tuned in Studio against docs/reference (Nov 10): neutral grey ambient, equal
+-- indoor and outdoor (trunks under a crown use Ambient), no sky tint on surfaces
+-- (EnvironmentDiffuseScale 0), exposure 0 so the flat sky reads as in the reference.
+-- Shadowed ground comes out about 77% of the lit ground, as there.
 Lighting.Settings = {
 	Technology = Enum.Technology.ShadowMap,
-	Brightness = 1,
+	Brightness = 1.4,
 	ClockTime = 13,
 	GeographicLatitude = 41.7,
-	Ambient = rgb(70, 70, 80),
-	OutdoorAmbient = rgb(161, 163, 163),
+	Ambient = rgb(225, 225, 225),
+	OutdoorAmbient = rgb(225, 225, 225),
 	ColorShift_Top = rgb(0, 0, 0),
 	ColorShift_Bottom = rgb(0, 0, 0),
 	GlobalShadows = true,
 	ShadowSoftness = 0.2,
-	EnvironmentDiffuseScale = 0.4,
+	EnvironmentDiffuseScale = 0,
 	EnvironmentSpecularScale = 0, -- matte: no environment reflections
-	ExposureCompensation = 0.5,
+	ExposureCompensation = 0,
 	FogStart = 100000,
 	FogEnd = 100000,
 }
 
-Lighting.ColorCorrection = { Brightness = 0, Contrast = 0.05, Saturation = 0.25, TintColor = rgb(255, 255, 255) }
+Lighting.ColorCorrection = { Brightness = 0, Contrast = 0.05, Saturation = 0, TintColor = rgb(255, 255, 255) }
 
 -- one flat sky colour, no sun, moon or stars
 Lighting.SkyTexture = "rbxassetid://81588505365795"
@@ -659,7 +661,7 @@ Palette.Base = {
 	Ground = rgb(196, 201, 76),
 
 	Grass = rgb(201, 207, 72),
-	Dirt = rgb(124, 100, 124),
+	Dirt = rgb(124, 100, 110),
 
 	Trunk = rgb(112, 92, 122),
 	Leaves = { rgb(201, 207, 72), rgb(186, 196, 60), rgb(214, 219, 98), rgb(142, 212, 92) },
