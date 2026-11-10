@@ -120,7 +120,8 @@ end
 Builder.Studs = {
 	Texture = "rbxassetid://100359261064701",
 	StudsPerTile = 4,
-	Transparency = 0,
+	-- softens the L shadow so it reads like the reference instead of popping
+	Transparency = 0.25,
 }
 
 local NORMALS = { Enum.NormalId.Top, Enum.NormalId.Bottom, Enum.NormalId.Left, Enum.NormalId.Right, Enum.NormalId.Front, Enum.NormalId.Back }
@@ -151,7 +152,9 @@ function Builder.addStuds(p: BasePart)
 		t.StudsPerTileU = st.StudsPerTile
 		t.StudsPerTileV = st.StudsPerTile
 		t.Transparency = st.Transparency
-		t.Color3 = Color3.new(1, 1, 1)
+		-- the tile's white rim highlight is tinted to the block's own colour, so
+		-- only the dark L shadow shows; untinted it glows on dark blocks
+		t.Color3 = p.Color
 		t.Parent = p
 	end
 end
@@ -364,8 +367,8 @@ function Kit.ground(parent, origin: CFrame, pal, opts)
 end
 
 --------------------------------------------------------------------------------
--- Walls: one dirt slab and one grass cap per segment. The checkerboard comes
--- from the native baseplate grid on each face, with studs on top of it.
+-- Walls: one dirt slab and one grass cap per segment, flat colours with the
+-- L-stud texture on every face.
 -- opts: length, height, cap (grass thickness), depth,
 --       bands (a grass band every bandEvery studs, like the striped cliffs)
 --------------------------------------------------------------------------------

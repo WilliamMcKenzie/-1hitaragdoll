@@ -78,8 +78,8 @@ function Kit.ground(parent, origin: CFrame, pal, opts)
 end
 
 --------------------------------------------------------------------------------
--- Walls: one dirt slab and one grass cap per segment. The checkerboard comes
--- from the native baseplate grid on each face, with studs on top of it.
+-- Walls: one dirt slab and one grass cap per segment, flat colours with the
+-- L-stud texture on every face.
 -- opts: length, height, cap (grass thickness), depth,
 --       bands (a grass band every bandEvery studs, like the striped cliffs)
 --------------------------------------------------------------------------------
