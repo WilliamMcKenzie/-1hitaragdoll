@@ -8,7 +8,7 @@ end
 
 __modules["Base"] = function()
 --[[
-	Base / spawn area asset set.
+	Base / spawn area: ground colour, trees and walls.
 	Each entry: name, footprint (studs, for the showcase layout), build(parent, cf).
 ]]
 
@@ -19,49 +19,24 @@ local P = Palette.Base
 
 return {
 	palette = P,
-	gateText = "SPAWN",
 	assets = {
-		{ name = "SpawnPlaza", footprint = 50, build = function(parent, cf)
-			return Kit.plaza(parent, cf, P, { name = "SpawnPlaza", sizeX = 48, sizeZ = 48, spawn = true })
+		{ name = "Tree", footprint = 34, build = function(parent, cf)
+			return Kit.tree(parent, cf, P, { name = "Tree", height = 26, canopy = 18, branches = 2, seed = 21 })
 		end },
-		{ name = "Ramp", footprint = 30, build = function(parent, cf)
-			return Kit.ramp(parent, cf, P, { name = "Ramp" })
+		{ name = "TreeTall", footprint = 38, build = function(parent, cf)
+			return Kit.tree(parent, cf, P, { name = "TreeTall", height = 34, canopy = 20, branches = 3, seed = 23 })
 		end },
-		{ name = "EggPad", footprint = 16, build = function(parent, cf)
-			return Kit.pad(parent, cf, P, { name = "EggPad", color = P.PadEgg })
+		{ name = "TreeSmall", footprint = 22, build = function(parent, cf)
+			return Kit.tree(parent, cf, P, { name = "TreeSmall", height = 15, trunk = 2, canopy = 11, branches = 1, seed = 22 })
 		end },
-		{ name = "UpgradePad", footprint = 16, build = function(parent, cf)
-			return Kit.pad(parent, cf, P, { name = "UpgradePad", color = P.PadUpgrade })
+		{ name = "Wall", footprint = 34, build = function(parent, cf)
+			return Kit.wall(parent, cf, P, { name = "Wall", length = 32, height = 16 })
 		end },
-		{ name = "RebirthPad", footprint = 16, build = function(parent, cf)
-			return Kit.pad(parent, cf, P, { name = "RebirthPad", color = P.PadRebirth })
+		{ name = "WallStriped", footprint = 34, build = function(parent, cf)
+			return Kit.wall(parent, cf, P, { name = "WallStriped", length = 32, height = 36, bands = true, bandEvery = 12 })
 		end },
-		{ name = "DisplayStand", footprint = 10, build = function(parent, cf)
-			return Kit.stand(parent, cf, P, { name = "DisplayStand" })
-		end },
-		{ name = "TerraceCliffSmall", footprint = 26, build = function(parent, cf)
-			return Kit.terrace(parent, cf, P, { name = "TerraceCliffSmall", cellsX = 6, cellsZ = 6, tiers = 2, tierHeight = 8, cap = 4, bands = true, seed = 11 })
-		end },
-		{ name = "TerraceCliffLarge", footprint = 44, build = function(parent, cf)
-			return Kit.terrace(parent, cf, P, { name = "TerraceCliffLarge", cellsX = 10, cellsZ = 10, tiers = 4, tierHeight = 8, cap = 4, bands = true, seed = 12 })
-		end },
-		{ name = "BoundaryWall", footprint = 34, build = function(parent, cf)
-			return Kit.wall(parent, cf, P, { name = "BoundaryWall", length = 32, tiers = 3, tierHeight = 8, bands = true })
-		end },
-		{ name = "Tree", footprint = 26, build = function(parent, cf)
-			return Kit.tree(parent, cf, P, { name = "Tree", height = 24, canopy = 18, branches = 2, seed = 21 })
-		end },
-		{ name = "TreeSmall", footprint = 16, build = function(parent, cf)
-			return Kit.tree(parent, cf, P, { name = "TreeSmall", height = 14, trunk = 2, canopy = 11, branches = 1, seed = 22 })
-		end },
-		{ name = "SteppedBush", footprint = 10, build = function(parent, cf)
-			return Kit.steppedBush(parent, cf, P, { name = "SteppedBush" })
-		end },
-		{ name = "GrassTuft", footprint = 6, build = function(parent, cf)
-			return Kit.tuft(parent, cf, P, { name = "GrassTuft", seed = 3 })
-		end },
-		{ name = "CrystalBlock", footprint = 8, build = function(parent, cf)
-			return Kit.crystalBlock(parent, cf, P, { name = "CrystalBlock" })
+		{ name = "WallCorner", footprint = 22, build = function(parent, cf)
+			return Kit.wallCorner(parent, cf, P, { name = "WallCorner", length = 16, height = 24, bands = true, bandEvery = 12 })
 		end },
 	},
 }
@@ -70,7 +45,7 @@ end
 
 __modules["Meadow"] = function()
 --[[
-	Biome 1: Meadow asset set.
+	Biome 1, Meadow: ground colour, trees and walls.
 	Each entry: name, footprint (studs, for the showcase layout), build(parent, cf).
 ]]
 
@@ -81,46 +56,24 @@ local P = Palette.Meadow
 
 return {
 	palette = P,
-	gateText = "MEADOW",
 	assets = {
-		{ name = "BiomeGate", footprint = 44, placeAtBorder = true, build = function(parent, cf)
-			return Kit.gate(parent, cf, P, { name = "BiomeGate", text = "MEADOW" })
+		{ name = "TreeTall", footprint = 40, build = function(parent, cf)
+			return Kit.tree(parent, cf, P, { name = "TreeTall", height = 34, trunk = 3, canopy = 22, branches = 3, seed = 41 })
 		end },
-		{ name = "TerraceCliffSmall", footprint = 30, build = function(parent, cf)
-			return Kit.terrace(parent, cf, P, { name = "TerraceCliffSmall", cellsX = 7, cellsZ = 6, tiers = 2, seed = 31 })
+		{ name = "TreeRound", footprint = 34, build = function(parent, cf)
+			return Kit.tree(parent, cf, P, { name = "TreeRound", height = 24, trunk = 3, canopy = 18, branches = 2, seed = 42 })
 		end },
-		{ name = "TerraceCliffMedium", footprint = 42, build = function(parent, cf)
-			return Kit.terrace(parent, cf, P, { name = "TerraceCliffMedium", cellsX = 10, cellsZ = 9, tiers = 3, seed = 32 })
+		{ name = "TreeSmall", footprint = 22, build = function(parent, cf)
+			return Kit.tree(parent, cf, P, { name = "TreeSmall", height = 14, trunk = 2, canopy = 11, branches = 1, seed = 43 })
 		end },
-		{ name = "TerraceCliffLarge", footprint = 58, build = function(parent, cf)
-			return Kit.terrace(parent, cf, P, { name = "TerraceCliffLarge", cellsX = 15, cellsZ = 13, tiers = 4, seed = 33 })
+		{ name = "Wall", footprint = 34, build = function(parent, cf)
+			return Kit.wall(parent, cf, P, { name = "Wall", length = 32, height = 16 })
 		end },
-		{ name = "BoundaryWall", footprint = 34, build = function(parent, cf)
-			return Kit.wall(parent, cf, P, { name = "BoundaryWall", length = 32, tiers = 3 })
+		{ name = "WallTall", footprint = 34, build = function(parent, cf)
+			return Kit.wall(parent, cf, P, { name = "WallTall", length = 32, height = 36 })
 		end },
-		{ name = "TreeTall", footprint = 32, build = function(parent, cf)
-			return Kit.tree(parent, cf, P, { name = "TreeTall", height = 32, trunk = 3, canopy = 22, branches = 3, seed = 41 })
-		end },
-		{ name = "TreeRound", footprint = 26, build = function(parent, cf)
-			return Kit.tree(parent, cf, P, { name = "TreeRound", height = 20, trunk = 3, canopy = 18, branches = 2, seed = 42 })
-		end },
-		{ name = "TreeSmall", footprint = 16, build = function(parent, cf)
-			return Kit.tree(parent, cf, P, { name = "TreeSmall", height = 12, trunk = 2, canopy = 11, branches = 1, seed = 43 })
-		end },
-		{ name = "Bush", footprint = 10, build = function(parent, cf)
-			return Kit.bush(parent, cf, P, { name = "Bush", width = 7, seed = 51 })
-		end },
-		{ name = "Rock", footprint = 10, build = function(parent, cf)
-			return Kit.rock(parent, cf, P, { name = "Rock", size = 6, seed = 61 })
-		end },
-		{ name = "RockSmall", footprint = 6, build = function(parent, cf)
-			return Kit.rock(parent, cf, P, { name = "RockSmall", size = 3, seed = 62 })
-		end },
-		{ name = "FlowerPatch", footprint = 12, build = function(parent, cf)
-			return Kit.flowerPatch(parent, cf, P, { name = "FlowerPatch", seed = 71 })
-		end },
-		{ name = "GrassTuft", footprint = 6, build = function(parent, cf)
-			return Kit.tuft(parent, cf, P, { name = "GrassTuft", seed = 4 })
+		{ name = "WallCorner", footprint = 22, build = function(parent, cf)
+			return Kit.wallCorner(parent, cf, P, { name = "WallCorner", length = 16, height = 24 })
 		end },
 	},
 }
@@ -262,12 +215,14 @@ end
 
 __modules["Kit"] = function()
 --[[
-	Kit: palette-driven generators for every asset type.
+	Kit: palette-driven generators for the ground, walls and trees.
 
 	Each generator takes (parent, origin, palette, opts) and returns a Model whose
 	pivot is the origin, sitting on local y = 0. Generators with randomness take
 	opts.seed so the same seed always gives the same shape.
 ]]
+
+local Workspace = game:GetService("Workspace")
 
 local Builder = __require("Builder")
 local Palette = __require("Palette")
@@ -283,144 +238,110 @@ local function rngFor(opts): Random
 end
 
 --------------------------------------------------------------------------------
--- Ground: the native Roblox baseplate (plastic slab + baseplate grid texture),
--- recoloured per biome. Top face sits at local y = 0.
+-- Ground: a clone of the place's own default Baseplate (same part, same native
+-- grid texture), with only its colour changed. Top face sits at local y = 0.
+-- Falls back to building an identical part if the place has no Baseplate.
 --------------------------------------------------------------------------------
+function Kit.nativeBaseplate(): BasePart?
+	local bp = Workspace:FindFirstChild("Baseplate")
+	if bp and bp:IsA("BasePart") then
+		return bp
+	end
+	return nil
+end
+
 function Kit.ground(parent, origin: CFrame, pal, opts)
 	opts = opts or {}
-	local bp = Palette.Baseplate
-	local sx, sz = opts.sizeX or 512, opts.sizeZ or 512
-	local m = Builder.model(opts.name or (pal.Name .. "Ground"), parent, origin)
-	local p = Builder.box(m, origin, V3(0, -bp.Thickness / 2, 0), V3(sx, bp.Thickness, sz), opts.color or pal.Ground, "smooth", { name = "Baseplate" })
-	Builder.baseplateTexture(p, bp)
-	return m
+	local settings = Palette.Baseplate
+	local source = opts.source or Kit.nativeBaseplate()
+	local p: BasePart
+	if source then
+		p = source:Clone()
+		-- strip anything that is not the native look (scripts, welds, etc.)
+		for _, child in p:GetChildren() do
+			if not child:IsA("Texture") then
+				child:Destroy()
+			end
+		end
+	else
+		p = Builder.part(Workspace, V3(512, settings.Thickness, 512), CFrame.new(), pal.Ground, "smooth")
+		Builder.baseplateTexture(p, settings)
+	end
+	-- An earlier showcase script hid the template baseplate; make the copy visible.
+	p.Transparency = 0
+	p.CanCollide = true
+	p.Anchored = true
+	p.Locked = false
+	for _, tex in p:GetChildren() do
+		if tex:IsA("Texture") and tex.Transparency >= 1 then
+			tex.Transparency = settings.TextureTransparency
+		end
+	end
+	local thickness = p.Size.Y
+	p.Size = V3(opts.sizeX or p.Size.X, thickness, opts.sizeZ or p.Size.Z)
+	p.CFrame = origin * CFrame.new(0, -thickness / 2, 0)
+	p.Color = opts.color or pal.Ground
+	p.Name = opts.name or (pal.Name .. "Baseplate")
+	p.Parent = parent
+	return p
 end
 
 --------------------------------------------------------------------------------
--- Terraced cliff: a blob-shaped stack of tiers built from studded cells.
--- opts: cellsX, cellsZ, tiers, cell (studs), tierHeight, cap (grass thickness),
---       bands (grass band on every tier face instead of only on the top), seed
+-- Walls: studded cliff segments built from 4x4 blocks in alternating shades,
+-- a grass cap on top. Straight walls run along local X; corners turn 90 degrees.
+-- opts: length, height, cap (grass thickness), depth, block, bands (grass band
+--       every bandEvery studs, like the striped cliffs at spawn)
 --------------------------------------------------------------------------------
-function Kit.terrace(parent, origin: CFrame, pal, opts)
-	opts = opts or {}
-	local rng = rngFor(opts)
-	local cx, cz = opts.cellsX or 8, opts.cellsZ or 8
-	local tiers = opts.tiers or 3
-	local cell = opts.cell or 4
-	local th = opts.tierHeight or 12
+local function wallColumn(m, origin: CFrame, pal, x: number, z: number, col: number, opts, sx: number, sz: number)
+	local height = opts.height or 24
 	local cap = opts.cap or 4
-	local bands = opts.bands == true
-	local m = Builder.model(opts.name or "TerraceCliff", parent, origin)
-
-	-- Height map: each tier is a rectangle inset from the one below by 1-2 cells
-	-- per side (random), with a couple of corner notches so it reads as a blob.
-	local level = {}
-	for i = 1, cx do
-		level[i] = {}
-		for j = 1, cz do
-			level[i][j] = 0
+	local b = opts.block or 4
+	local bandEvery = opts.bands and (opts.bandEvery or 12) or nil
+	local y, row = 0, 0
+	while y < height - cap do
+		local h = math.min(b, height - cap - y)
+		local even = (col + row) % 2 == 0
+		local isBand = bandEvery ~= nil and (y + h) % bandEvery == 0 and y + h < height - cap
+		local color
+		if isBand then
+			color = if even then pal.Grass else pal.GrassAlt
+		else
+			color = if even then pal.Dirt else pal.DirtAlt
 		end
+		block(m, origin, x, y, z, V3(sx, h, sz), color, "studs")
+		y += h
+		row += 1
 	end
-	local l0, r0, b0, f0 = 0, 0, 0, 0
-	for t = 1, tiers do
-		if t > 1 then
-			l0 += rng:NextInteger(1, 2)
-			r0 += rng:NextInteger(1, 2)
-			b0 += rng:NextInteger(1, 2)
-			f0 += rng:NextInteger(1, 2)
-		end
-		local i1, i2, j1, j2 = 1 + l0, cx - r0, 1 + b0, cz - f0
-		if i2 < i1 or j2 < j1 then
-			break
-		end
-		local notch = math.max(1, math.floor(math.min(i2 - i1, j2 - j1) / 4))
-		local cut = {}
-		for _ = 1, 2 do
-			cut[rng:NextInteger(1, 4)] = rng:NextInteger(1, notch)
-		end
-		for i = i1, i2 do
-			for j = j1, j2 do
-				local inCorner = false
-				local corners = {
-					{ i - i1, j - j1 },
-					{ i2 - i, j - j1 },
-					{ i - i1, j2 - j },
-					{ i2 - i, j2 - j },
-				}
-				for c, d in corners do
-					local n = cut[c]
-					if n and d[1] < n and d[2] < n then
-						inCorner = true
-					end
-				end
-				if not inCorner then
-					level[i][j] = t
-				end
-			end
-		end
-	end
-
-	local function lv(i, j)
-		if i < 1 or i > cx or j < 1 or j > cz then
-			return 0
-		end
-		return level[i][j]
-	end
-
-	for i = 1, cx do
-		for j = 1, cz do
-			local L = level[i][j]
-			local x = (i - cx / 2 - 0.5) * cell
-			local z = (j - cz / 2 - 0.5) * cell
-			local minNeighbour = math.min(lv(i - 1, j), lv(i + 1, j), lv(i, j - 1), lv(i, j + 1))
-			for t = 1, L do
-				local isTop = t == L
-				local visibleSide = minNeighbour < t
-				if isTop or visibleSide then
-					local even = (i + j + t) % 2 == 0
-					local y0 = (t - 1) * th
-					local dirt = if even then pal.Dirt else pal.DirtAlt
-					local grass = if even then pal.Grass else pal.GrassAlt
-					if isTop or bands then
-						block(m, origin, x, y0, z, V3(cell, th - cap, cell), dirt, "studs")
-						block(m, origin, x, y0 + th - cap, z, V3(cell, cap, cell), grass, "studs")
-					else
-						block(m, origin, x, y0, z, V3(cell, th, cell), dirt, "studs")
-					end
-				end
-			end
-		end
-	end
-	return m
+	local even = (col + row) % 2 == 0
+	block(m, origin, x, y, z, V3(sx, cap, sz), if even then pal.Grass else pal.GrassAlt, "studs")
 end
 
---------------------------------------------------------------------------------
--- Boundary wall: a straight studded cliff segment along local X.
---------------------------------------------------------------------------------
 function Kit.wall(parent, origin: CFrame, pal, opts)
 	opts = opts or {}
 	local len = opts.length or 32
-	local tiers = opts.tiers or 2
-	local th = opts.tierHeight or 12
-	local cap = opts.cap or 4
-	local cell = opts.cell or 4
+	local b = opts.block or 4
 	local depth = opts.depth or 4
-	local m = Builder.model(opts.name or "BoundaryWall", parent, origin)
-	local n = math.floor(len / cell)
+	local m = Builder.model(opts.name or "Wall", parent, origin)
+	local n = math.floor(len / b)
 	for i = 1, n do
-		local x = (i - n / 2 - 0.5) * cell
-		for t = 1, tiers do
-			local even = (i + t) % 2 == 0
-			local y0 = (t - 1) * th
-			local dirt = if even then pal.Dirt else pal.DirtAlt
-			local grass = if even then pal.Grass else pal.GrassAlt
-			if t == tiers or opts.bands then
-				block(m, origin, x, y0, 0, V3(cell, th - cap, depth), dirt, "studs")
-				block(m, origin, x, y0 + th - cap, 0, V3(cell, cap, depth), grass, "studs")
-			else
-				block(m, origin, x, y0, 0, V3(cell, th, depth), dirt, "studs")
-			end
-		end
+		wallColumn(m, origin, pal, (i - n / 2 - 0.5) * b, 0, i, opts, b, depth)
+	end
+	return m
+end
+
+-- L-shaped corner: one arm along +X, one along +Z, meeting at the origin.
+function Kit.wallCorner(parent, origin: CFrame, pal, opts)
+	opts = opts or {}
+	local len = opts.length or 16
+	local b = opts.block or 4
+	local depth = opts.depth or 4
+	local m = Builder.model(opts.name or "WallCorner", parent, origin)
+	local n = math.floor(len / b)
+	wallColumn(m, origin, pal, 0, 0, 0, opts, depth, depth)
+	for i = 1, n do
+		local d = depth / 2 + (i - 0.5) * b
+		wallColumn(m, origin, pal, d, 0, i, opts, b, depth)
+		wallColumn(m, origin, pal, 0, d, i, opts, depth, b)
 	end
 	return m
 end
@@ -458,19 +379,23 @@ function Kit.canopy(m, origin: CFrame, pal, rng: Random, width: number)
 end
 
 --------------------------------------------------------------------------------
--- Voxel tree: stepped trunk with root flare, diagonal branches ending in small
--- leaf clusters, and a big canopy on top.
--- opts: height, trunk (width), canopy (width), branches, seed
+-- Voxel tree: straight stepped trunk with a root flare, branches that stair-step
+-- out and up from the middle of the trunk and end in their own leaf clumps
+-- (below and outside the crown), and a wide layered crown on top.
+-- opts: height, trunk (width), canopy (crown width), branches, reach, seed
 --------------------------------------------------------------------------------
 function Kit.tree(parent, origin: CFrame, pal, opts)
 	opts = opts or {}
 	local rng = rngFor(opts)
 	local H = opts.height or 26
 	local tw = opts.trunk or 3
+	local crown = opts.canopy or 16
 	local m = Builder.model(opts.name or "Tree", parent, origin)
 
+	-- root flare + trunk in 4-stud segments with alternating shade
 	block(m, origin, 0, 0, 0, V3(tw + 2, 1, tw + 2), shade(pal.Trunk, -0.06), "studs")
-	local y, k = 1, 0
+	block(m, origin, 0, 1, 0, V3(tw + 1, 1, tw + 1), pal.Trunk, "studs")
+	local y, k = 2, 0
 	while y < H do
 		local h = math.min(4, H - y)
 		block(m, origin, 0, y, 0, V3(tw, h, tw), if k % 2 == 0 then pal.Trunk else shade(pal.Trunk, -0.07), "studs")
@@ -478,230 +403,31 @@ function Kit.tree(parent, origin: CFrame, pal, opts)
 		k += 1
 	end
 
-	Kit.canopy(m, origin * CFrame.new(0, H - 1, 0), pal, rng, opts.canopy or 16)
+	Kit.canopy(m, origin * CFrame.new(0, H - 1, 0), pal, rng, crown)
 
-	local dirs = { V3(1, 0, 0), V3(-1, 0, 0), V3(0, 0, 1), V3(0, 0, -1) }
-	for i = #dirs, 2, -1 do
-		local j = rng:NextInteger(1, i)
-		dirs[i], dirs[j] = dirs[j], dirs[i]
-	end
-	for b = 1, math.min(opts.branches or 2, 4) do
-		local d = dirs[b]
-		local by = math.floor(H * (0.3 + 0.15 * rng:NextNumber()))
+	-- branches: first one picks a random side, later ones go to the other sides
+	local dirs = { V3(1, 0, 0), V3(0, 0, 1), V3(-1, 0, 0), V3(0, 0, -1) }
+	local start = rng:NextInteger(0, 3)
+	local count = math.min(opts.branches or 2, 4)
+	local bw = tw
+	local reach = opts.reach or (crown * 0.5 + 2) -- ends just outside the crown edge
+	for b = 1, count do
+		-- opposite sides first (0, 2), then the remaining two (1, 3)
+		local order = { 0, 2, 1, 3 }
+		local d = dirs[(start + order[b]) % 4 + 1]
+		local by = math.floor(H * (0.38 + 0.14 * rng:NextNumber()) + (b - 1) * 2)
 		local pos = V3(0, by, 0) + d * (tw / 2)
-		local bw = math.max(2, tw - 1)
-		-- staircase of overlapping blocks: out one, up one, so the branch reads as solid
-		for _ = 1, rng:NextInteger(3, 5) do
-			pos += d * 1.5 + V3(0, 1.5, 0)
+		local out = 0
+		local thisReach = reach * (0.8 + 0.3 * rng:NextNumber())
+		-- stair-step: two out, one up, until the branch clears the crown
+		while out < thisReach do
+			pos += d * 2 + V3(0, 1.5, 0)
+			out += 2
 			block(m, origin, pos.X, pos.Y - bw / 2, pos.Z, V3(bw, bw, bw), pal.Trunk, "studs")
 		end
-		block(m, origin, pos.X, pos.Y, pos.Z, V3(bw, 3, bw), pal.Trunk, "studs")
-		Kit.canopy(m, origin * CFrame.new(pos.X, pos.Y + 3, pos.Z), pal, rng, (opts.canopy or 16) * 0.55)
-	end
-	return m
-end
-
---------------------------------------------------------------------------------
--- Small props
---------------------------------------------------------------------------------
-
--- Round bush: a low leaf cluster on the ground.
-function Kit.bush(parent, origin: CFrame, pal, opts)
-	opts = opts or {}
-	local rng = rngFor(opts)
-	local m = Builder.model(opts.name or "Bush", parent, origin)
-	Kit.canopy(m, origin * CFrame.new(0, 1, 0), pal, rng, opts.width or 6)
-	return m
-end
-
--- Stepped bush: a little studded ziggurat.
-function Kit.steppedBush(parent, origin: CFrame, pal, opts)
-	opts = opts or {}
-	local m = Builder.model(opts.name or "SteppedBush", parent, origin)
-	local w = opts.width or 6
-	local c = pal.Leaves
-	block(m, origin, 0, 0, 0, V3(w, 2, w), shade(c[1], -0.05), "studs")
-	block(m, origin, 0, 2, 0, V3(w - 2, 2, w - 2), c[1], "studs")
-	block(m, origin, 0, 4, 0, V3(math.max(2, w - 4), 2, math.max(2, w - 4)), c[#c], "studs")
-	return m
-end
-
--- Grass tuft: three blades joined at the base.
-function Kit.tuft(parent, origin: CFrame, pal, opts)
-	opts = opts or {}
-	local rng = rngFor(opts)
-	local m = Builder.model(opts.name or "GrassTuft", parent, origin)
-	local c = Builder.jitter(pal.Tuft, rng, 0.05)
-	local s = opts.scale or 1
-	block(m, origin, 0, 0, 0, V3(2.2 * s, 0.6 * s, 0.6 * s), c, "smooth")
-	block(m, origin, -0.8 * s, 0.6 * s, 0, V3(0.6 * s, 1.2 * s, 0.6 * s), c, "smooth")
-	block(m, origin, 0, 0.6 * s, 0, V3(0.6 * s, 2.0 * s, 0.6 * s), shade(c, 0.06), "smooth")
-	block(m, origin, 0.8 * s, 0.6 * s, 0, V3(0.6 * s, 1.5 * s, 0.6 * s), c, "smooth")
-	return m
-end
-
--- Flower: a tuft with a coloured studded head.
-function Kit.flower(parent, origin: CFrame, pal, opts)
-	opts = opts or {}
-	local rng = rngFor(opts)
-	local m = Builder.model(opts.name or "Flower", parent, origin)
-	local stem = shade(pal.Tuft, -0.1)
-	local h = 1.5 + rng:NextInteger(0, 1)
-	block(m, origin, 0, 0, 0, V3(0.5, h, 0.5), stem, "smooth")
-	block(m, origin, 0.5, 0, 0, V3(0.9, 0.5, 0.5), stem, "smooth")
-	local head = Builder.pick(pal.Flowers, rng)
-	block(m, origin, 0, h, 0, V3(1.4, 1, 1.4), head, "studs")
-	block(m, origin, 0, h + 1, 0, V3(0.6, 0.4, 0.6), pal.Flowers[3] or head, "smooth")
-	return m
-end
-
--- Flower patch: a scatter of flowers and tufts.
-function Kit.flowerPatch(parent, origin: CFrame, pal, opts)
-	opts = opts or {}
-	local rng = rngFor(opts)
-	local m = Builder.model(opts.name or "FlowerPatch", parent, origin)
-	local r = opts.radius or 5
-	for n = 1, opts.count or 7 do
-		local cf = origin * CFrame.new((rng:NextNumber() - 0.5) * 2 * r, 0, (rng:NextNumber() - 0.5) * 2 * r) * CFrame.Angles(0, rng:NextInteger(0, 3) * math.pi / 2, 0)
-		local child = if n % 3 == 0 then Kit.tuft(m, cf, pal, { seed = n }) else Kit.flower(m, cf, pal, { seed = rng:NextInteger(1, 1e6) })
-		child.Name = child.Name .. n
-	end
-	return m
-end
-
--- Rock: two or three stacked studded blocks.
-function Kit.rock(parent, origin: CFrame, pal, opts)
-	opts = opts or {}
-	local rng = rngFor(opts)
-	local s = opts.size or 6
-	local m = Builder.model(opts.name or "Rock", parent, origin)
-	block(m, origin, 0, 0, 0, V3(s, math.ceil(s * 0.5), s * 0.8), pal.Rock, "studs")
-	block(m, origin, (rng:NextNumber() - 0.5) * 2, math.ceil(s * 0.5), (rng:NextNumber() - 0.5), V3(s * 0.66, math.ceil(s * 0.33), s * 0.55), pal.RockAlt, "studs")
-	if s >= 6 then
-		block(m, origin, s * 0.55, 0, s * 0.3, V3(s * 0.4, s * 0.3, s * 0.4), shade(pal.Rock, -0.06), "studs")
-	end
-	return m
-end
-
---------------------------------------------------------------------------------
--- Base / gameplay structures
---------------------------------------------------------------------------------
-
--- Plaza: mauve inlet tiles framed by dark trim. opts.spawn adds a SpawnLocation.
-function Kit.plaza(parent, origin: CFrame, pal, opts)
-	opts = opts or {}
-	local sx, sz = opts.sizeX or 48, opts.sizeZ or 48
-	local h = opts.height or 1
-	local tile = opts.tile or 8
-	local trim = opts.trimWidth or 1
-	local m = Builder.model(opts.name or "Plaza", parent, origin)
-	local nx, nz = math.floor(sx / tile), math.floor(sz / tile)
-	for i = 1, nx do
-		for j = 1, nz do
-			local c = if (i + j) % 2 == 0 then pal.Plaza else pal.PlazaAlt
-			block(m, origin, (i - nx / 2 - 0.5) * tile, 0, (j - nz / 2 - 0.5) * tile, V3(tile, h, tile), c, "inlet")
-		end
-	end
-	local th = h + 0.4
-	local wx, wz = nx * tile, nz * tile
-	block(m, origin, 0, 0, -(wz + trim) / 2, V3(wx + trim * 2, th, trim), pal.Trim, "smooth")
-	block(m, origin, 0, 0, (wz + trim) / 2, V3(wx + trim * 2, th, trim), pal.Trim, "smooth")
-	block(m, origin, -(wx + trim) / 2, 0, 0, V3(trim, th, wz), pal.Trim, "smooth")
-	block(m, origin, (wx + trim) / 2, 0, 0, V3(trim, th, wz), pal.Trim, "smooth")
-	if opts.spawn then
-		local sp = block(m, origin, 0, h, 0, V3(8, 0.6, 8), pal.Trim, "inlet", { class = "SpawnLocation", name = "Spawn" })
-		;(sp :: any).Neutral = true
-		;(sp :: any).Duration = 0
-	end
-	return m
-end
-
--- Ramp: an inlet wedge rising towards local -Z, with trim rails and a landing.
-function Kit.ramp(parent, origin: CFrame, pal, opts)
-	opts = opts or {}
-	local w, h, len = opts.width or 12, opts.height or 8, opts.length or 20
-	local landing = opts.landing or 8
-	local m = Builder.model(opts.name or "Ramp", parent, origin)
-	-- WedgePart slopes up towards its back (+Z local); rotate 180 so it rises to -Z.
-	local wedgeCf = origin * CFrame.new(0, h / 2, 0) * CFrame.Angles(0, math.pi, 0)
-	Builder.part(m, V3(w, h, len), wedgeCf, pal.Plaza, "inlet", { class = "WedgePart", name = "Slope" })
-	Builder.part(m, V3(1, h + 0.4, len), origin * CFrame.new(-(w + 1) / 2, h / 2 + 0.2, 0) * CFrame.Angles(0, math.pi, 0), pal.Trim, "smooth", { class = "WedgePart" })
-	Builder.part(m, V3(1, h + 0.4, len), origin * CFrame.new((w + 1) / 2, h / 2 + 0.2, 0) * CFrame.Angles(0, math.pi, 0), pal.Trim, "smooth", { class = "WedgePart" })
-	block(m, origin, 0, 0, -(len + landing) / 2, V3(w, h, landing), pal.PlazaAlt, "inlet", { name = "Landing" })
-	block(m, origin, -(w + 1) / 2, 0, -(len + landing) / 2, V3(1, h + 0.4, landing), pal.Trim, "smooth")
-	block(m, origin, (w + 1) / 2, 0, -(len + landing) / 2, V3(1, h + 0.4, landing), pal.Trim, "smooth")
-	return m
-end
-
--- Action pad: neon square in a dark frame, for egg / upgrade / rebirth stations.
-function Kit.pad(parent, origin: CFrame, pal, opts)
-	opts = opts or {}
-	local s = opts.size or 12
-	local color = opts.color or pal.PadEgg
-	local m = Builder.model(opts.name or "ActionPad", parent, origin)
-	block(m, origin, 0, 0, 0, V3(s + 2, 0.8, s + 2), pal.Trim, "smooth", { name = "Frame" })
-	local glow = block(m, origin, 0, 0, 0, V3(s, 1, s), color, "smooth", { name = "Glow", material = Enum.Material.Neon })
-	local light = Instance.new("PointLight")
-	light.Color = color
-	light.Range = s
-	light.Brightness = 1.5
-	light.Parent = glow
-	return m
-end
-
--- Display stand: dark base with a mauve inlet top, for showing weapons.
-function Kit.stand(parent, origin: CFrame, pal, opts)
-	opts = opts or {}
-	local m = Builder.model(opts.name or "DisplayStand", parent, origin)
-	block(m, origin, 0, 0, 0, V3(6, 1, 6), pal.Trim, "smooth")
-	block(m, origin, 0, 1, 0, V3(4, 3, 4), pal.PlazaAlt, "studs")
-	block(m, origin, 0, 4, 0, V3(5, 0.6, 5), pal.Plaza, "inlet", { name = "Top" })
-	return m
-end
-
--- Crystal / boulder block: rounded-looking stacked lavender cubes.
-function Kit.crystalBlock(parent, origin: CFrame, pal, opts)
-	opts = opts or {}
-	local m = Builder.model(opts.name or "CrystalBlock", parent, origin)
-	local s = opts.size or 4
-	block(m, origin, 0, 0, 0, V3(s, s * 0.6, s), pal.Rock, "studs")
-	block(m, origin, 0, s * 0.6, 0, V3(s * 0.7, s * 0.25, s * 0.7), pal.RockAlt, "studs")
-	return m
-end
-
--- Biome gate: two studded pillars and a lintel with the biome name on it.
-function Kit.gate(parent, origin: CFrame, pal, opts)
-	opts = opts or {}
-	local w = opts.width or 28
-	local h = opts.height or 24
-	local pw = 6
-	local m = Builder.model(opts.name or "BiomeGate", parent, origin)
-	for _, side in { -1, 1 } do
-		local x = side * (w / 2 + pw / 2)
-		block(m, origin, x, 0, 0, V3(pw + 2, 2, pw + 2), pal.Trim, "smooth")
-		for t = 0, math.floor(h / 4) - 1 do
-			block(m, origin, x, 2 + t * 4, 0, V3(pw, 4, pw), if t % 2 == 0 then pal.Dirt else pal.DirtAlt, "studs")
-		end
-		block(m, origin, x, 2 + h, 0, V3(pw, 3, pw), pal.Grass, "studs")
-	end
-	local beam = block(m, origin, 0, h - 4, 0, V3(w + pw * 2, 6, pw), pal.Trim, "studs", { name = "Lintel" })
-	block(m, origin, 0, h + 2, 0, V3(w + pw * 2 + 2, 2, pw + 2), pal.Grass, "studs")
-	if opts.text then
-		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
-			local sg = Instance.new("SurfaceGui")
-			sg.Face = face
-			sg.PixelsPerStud = 25
-			sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-			local tl = Instance.new("TextLabel")
-			tl.Size = UDim2.fromScale(1, 1)
-			tl.BackgroundTransparency = 1
-			tl.Font = Enum.Font.FredokaOne
-			tl.TextScaled = true
-			tl.TextColor3 = Color3.new(1, 1, 1)
-			tl.Text = opts.text
-			tl.Parent = sg
-			sg.Parent = beam
-		end
+		-- short upward tip into the clump
+		block(m, origin, pos.X, pos.Y - bw / 2, pos.Z, V3(bw, 4, bw), pal.Trunk, "studs")
+		Kit.canopy(m, origin * CFrame.new(pos.X, pos.Y + 3, pos.Z), pal, rng, crown * 0.5)
 	end
 	return m
 end
@@ -724,23 +450,20 @@ end
 
 local Palette = {}
 
--- Settings for the native Roblox baseplate look used as ground in every biome.
+-- Fallback settings for the native baseplate look. Normally the ground is a
+-- clone of the place's own Workspace.Baseplate, so these are not used.
 Palette.Baseplate = {
-	Texture = "rbxassetid://6372755229", -- the texture the default Studio baseplate uses
+	Texture = "rbxassetid://6372755229", -- only used if the place has no Baseplate to clone
 	StudsPerTile = 8,
 	TextureTransparency = 0.8,
 	TextureColor = rgb(0, 0, 0),
 	Thickness = 16,
 }
 
--- Base / spawn area: olive yellow-green ground, mauve inlet plaza, dark navy trim.
+-- Base / spawn area: olive yellow-green ground, yellow-green grass, purple-grey dirt.
 Palette.Base = {
 	Name = "Base",
 	Ground = rgb(196, 201, 76),
-
-	Plaza = rgb(186, 156, 176),
-	PlazaAlt = rgb(174, 144, 165),
-	Trim = rgb(43, 45, 69),
 
 	Grass = rgb(201, 207, 72),
 	GrassAlt = rgb(186, 194, 60),
@@ -749,25 +472,12 @@ Palette.Base = {
 
 	Trunk = rgb(112, 92, 122),
 	Leaves = { rgb(201, 207, 72), rgb(186, 196, 60), rgb(214, 219, 98) },
-
-	Tuft = rgb(176, 200, 74),
-	Rock = rgb(152, 140, 214), -- lavender blocks
-	RockAlt = rgb(170, 160, 228),
-	Flowers = { rgb(255, 120, 150), rgb(255, 255, 255), rgb(255, 214, 90) },
-
-	PadEgg = rgb(255, 92, 112),
-	PadUpgrade = rgb(255, 214, 64),
-	PadRebirth = rgb(120, 200, 255),
 }
 
 -- Biome 1, Meadow: bright green grass, mauve-brown dirt cliffs, purple trunks.
 Palette.Meadow = {
 	Name = "Meadow",
 	Ground = rgb(126, 204, 92),
-
-	Plaza = rgb(160, 128, 132),
-	PlazaAlt = rgb(148, 116, 122),
-	Trim = rgb(48, 44, 64),
 
 	Grass = rgb(110, 196, 74),
 	GrassAlt = rgb(98, 184, 66),
@@ -776,15 +486,6 @@ Palette.Meadow = {
 
 	Trunk = rgb(110, 88, 114),
 	Leaves = { rgb(142, 212, 92), rgb(126, 200, 80), rgb(158, 220, 104) },
-
-	Tuft = rgb(104, 190, 70),
-	Rock = rgb(150, 150, 166),
-	RockAlt = rgb(170, 170, 184),
-	Flowers = { rgb(255, 110, 130), rgb(255, 255, 255), rgb(255, 220, 80), rgb(170, 140, 255) },
-
-	PadEgg = rgb(255, 92, 112),
-	PadUpgrade = rgb(255, 214, 64),
-	PadRebirth = rgb(120, 200, 255),
 }
 
 return Palette
@@ -793,12 +494,12 @@ end
 
 __modules["Showcase"] = function()
 --[[
-	Showcase: builds every biome's asset set in Workspace for review, and stores a
-	clean template copy of each asset in ServerStorage.AssetKitModels/<Biome>.
+	Showcase: lays every biome out in Workspace for review, and stores a clean
+	template copy of each asset in ServerStorage.AssetKitModels/<Biome>.
 
-	Biomes are laid out along -Z from the spawn: each sits on its own recoloured
-	baseplate, and the next biome's gate stands on the border between them.
-	Running it again replaces the previous showcase.
+	Each biome sits on its own copy of the place's default Baseplate, recoloured.
+	The Base plate is centred on the origin (where the default SpawnLocation is),
+	and each next biome follows along -Z. Running it again replaces the showcase.
 ]]
 
 local Workspace = game:GetService("Workspace")
@@ -809,11 +510,9 @@ local Kit = __require("Kit")
 
 local Showcase = {}
 
-Showcase.PlateSize = 320
-Showcase.Gap = 0
-Showcase.Margin = 16
-Showcase.Spacing = 10
-Showcase.BorderReserve = 30 -- keeps the first row clear of the biome gate
+Showcase.PlateSize = 256
+Showcase.Margin = 24
+Showcase.Spacing = 12
 
 local function labelAnchor(parent: Instance, model: Model, text: string)
 	local cf, size = model:GetBoundingBox()
@@ -830,23 +529,20 @@ end
 
 local function layoutBiome(biome, plateCenter: CFrame, showFolder: Instance, storeFolder: Instance, labels: Instance)
 	local half = Showcase.PlateSize / 2 - Showcase.Margin
-	local x, z = -half, half - Showcase.BorderReserve -- rows start near the +Z edge, behind the gate
+	-- Base plate: keep the middle (spawn) clear by starting rows past it.
+	local x, z = -half, -16
 	local rowDepth = 0
 	for _, asset in biome.assets do
 		local fp = asset.footprint
-		local cf
-		if asset.placeAtBorder then
-			cf = plateCenter * CFrame.new(0, 0, Showcase.PlateSize / 2)
-		else
-			if x + fp > half then
-				x = -half
-				z -= rowDepth + Showcase.Spacing
-				rowDepth = 0
-			end
-			cf = plateCenter * CFrame.new(x + fp / 2, 0, z - fp / 2)
-			x += fp + Showcase.Spacing
-			rowDepth = math.max(rowDepth, fp)
+		if x + fp > half then
+			x = -half
+			z -= rowDepth + Showcase.Spacing
+			rowDepth = 0
 		end
+		local cf = plateCenter * CFrame.new(x + fp / 2, 0, z - fp / 2)
+		x += fp + Showcase.Spacing
+		rowDepth = math.max(rowDepth, fp)
+
 		local model = asset.build(showFolder, cf)
 		labelAnchor(labels, model, asset.name)
 
@@ -856,34 +552,42 @@ local function layoutBiome(biome, plateCenter: CFrame, showFolder: Instance, sto
 	end
 end
 
+-- An earlier version of this script hid the template's Baseplate and SpawnLocation.
+local function restoreTemplate()
+	local spawn = Workspace:FindFirstChild("SpawnLocation")
+	if spawn and spawn:IsA("SpawnLocation") then
+		spawn.Enabled = true
+		spawn.Transparency = 0
+		spawn.CanCollide = true
+		local decal = spawn:FindFirstChildOfClass("Decal")
+		if decal then
+			decal.Transparency = 0
+		end
+	end
+end
+
 function Showcase.build(biomes)
-	local old = Workspace:FindFirstChild("AssetShowcase")
-	if old then
-		old:Destroy()
+	local oldShow = Workspace:FindFirstChild("AssetShowcase")
+	if oldShow then
+		oldShow:Destroy()
 	end
 	local oldStore = ServerStorage:FindFirstChild("AssetKitModels")
 	if oldStore then
 		oldStore:Destroy()
 	end
+	restoreTemplate()
 
-	-- Our recoloured baseplates replace the template's grey one.
-	local defaultBase = Workspace:FindFirstChild("Baseplate")
-	if defaultBase and defaultBase:IsA("BasePart") then
-		defaultBase.Transparency = 1
-		defaultBase.CanCollide = false
-		local tex = defaultBase:FindFirstChildOfClass("Texture")
-		if tex then
-			tex.Transparency = 1
-		end
-	end
-	local defaultSpawn = Workspace:FindFirstChild("SpawnLocation")
-	if defaultSpawn and defaultSpawn:IsA("SpawnLocation") then
-		defaultSpawn.Enabled = false
-		defaultSpawn.Transparency = 1
-		defaultSpawn.CanCollide = false
-		local decal = defaultSpawn:FindFirstChildOfClass("Decal")
-		if decal then
-			decal.Transparency = 1
+	-- Clone the place's own Baseplate before hiding it, so every biome's ground
+	-- is the genuine article (same part, same texture), only recoloured.
+	local native = Kit.nativeBaseplate()
+	local source = native and native:Clone()
+	if native then
+		native.Transparency = 1
+		native.CanCollide = false
+		for _, tex in native:GetChildren() do
+			if tex:IsA("Texture") then
+				tex.Transparency = 1
+			end
 		end
 	end
 
@@ -894,7 +598,7 @@ function Showcase.build(biomes)
 
 	for index, biome in biomes do
 		local name = biome.palette.Name
-		local center = CFrame.new(0, 0, -(index - 1) * (Showcase.PlateSize + Showcase.Gap))
+		local center = CFrame.new(0, 0, -(index - 1) * Showcase.PlateSize)
 
 		local biomeFolder = Instance.new("Folder")
 		biomeFolder.Name = name
@@ -906,9 +610,8 @@ function Showcase.build(biomes)
 		storeFolder.Name = name
 		storeFolder.Parent = store
 
-		Kit.ground(biomeFolder, center, biome.palette, { sizeX = Showcase.PlateSize, sizeZ = Showcase.PlateSize })
-		local groundTemplate = Kit.ground(storeFolder, CFrame.new(), biome.palette, { name = "Ground" })
-		groundTemplate.Name = "Ground"
+		Kit.ground(biomeFolder, center, biome.palette, { source = source, sizeX = Showcase.PlateSize, sizeZ = Showcase.PlateSize })
+		Kit.ground(storeFolder, CFrame.new(), biome.palette, { source = source, name = "Baseplate" })
 
 		layoutBiome(biome, center, biomeFolder, storeFolder, labels)
 	end
@@ -924,7 +627,7 @@ end
 
 __modules["AssetKit"] = function()
 --[[
-	AssetKit: studded blocky asset generators for +1 Hit a Ragdoll.
+	AssetKit: native-baseplate ground, studded walls and voxel trees for +1 Hit a Ragdoll.
 
 	    local AssetKit = require(game.ServerStorage.AssetKit)
 	    AssetKit.buildShowcase()                -- every biome, for review

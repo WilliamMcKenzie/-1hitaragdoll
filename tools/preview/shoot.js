@@ -4,11 +4,11 @@ const fs = require("fs");
 const path = require("path");
 const [, , partsFile, outDir] = process.argv;
 const views = {
-  base_overview: { pos: [0, 170, 300], look: [0, 0, 40], fov: 50 },
-  base_close: { pos: [-60, 45, 190], look: [-40, 8, 110], fov: 55 },
-  meadow_overview: { pos: [0, 170, -20], look: [0, 0, -280], fov: 50 },
-  meadow_close: { pos: [-20, 40, -150], look: [-40, 14, -225], fov: 60 },
-  meadow_trees: { pos: [90, 30, -150], look: [110, 20, -215], fov: 60 },
+  base_overview: { pos: [0, 110, 150], look: [0, 0, -60], fov: 50 },
+  base_trees: { pos: [-40, 30, 40], look: [-50, 18, -40], fov: 60 },
+  base_walls: { pos: [70, 26, 30], look: [60, 14, -45], fov: 60 },
+  meadow_overview: { pos: [0, 110, -120], look: [0, 0, -320], fov: 50 },
+  meadow_trees: { pos: [-40, 30, -220], look: [-50, 18, -300], fov: 60 },
 };
 (async () => {
   const parts = fs.readFileSync(partsFile, "utf8");

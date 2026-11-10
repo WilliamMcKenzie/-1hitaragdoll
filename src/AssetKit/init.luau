@@ -1,5 +1,5 @@
 --[[
-	AssetKit: studded blocky asset generators for +1 Hit a Ragdoll.
+	AssetKit: native-baseplate ground, studded walls and voxel trees for +1 Hit a Ragdoll.
 
 	    local AssetKit = require(game.ServerStorage.AssetKit)
 	    AssetKit.buildShowcase()                -- every biome, for review

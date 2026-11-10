@@ -237,3 +237,27 @@ local function dump()
 	end
 	print("[" .. table.concat(rows, ",\n") .. "]")
 end
+
+-- The Baseplate template's own Baseplate + SpawnLocation, so the clone path runs.
+do
+	local bp = Instance.new("Part")
+	bp.Name = "Baseplate"
+	bp.Size = Vector3.new(2048, 16, 2048)
+	bp.CFrame = CFrame.new(0, -8, 0)
+	bp.Color = Color3.fromRGB(91, 91, 91)
+	bp.TopSurface = "SurfaceType.Smooth"
+	bp.FrontSurface = "SurfaceType.Smooth"
+	bp.Material = "Material.Plastic"
+	local t = Instance.new("Texture")
+	t.StudsPerTileU = 8
+	t.StudsPerTileV = 8
+	t.Transparency = 0.8
+	t.Parent = bp
+	bp.Parent = workspace
+	local sp = Instance.new("SpawnLocation")
+	sp.Name = "SpawnLocation"
+	sp.Size = Vector3.new(12, 1, 12)
+	sp.CFrame = CFrame.new(0, 0.5, 0)
+	sp.Color = Color3.fromRGB(163, 162, 165)
+	sp.Parent = workspace
+end

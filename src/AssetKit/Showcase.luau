@@ -1,10 +1,10 @@
 --[[
-	Showcase: builds every biome's asset set in Workspace for review, and stores a
-	clean template copy of each asset in ServerStorage.AssetKitModels/<Biome>.
+	Showcase: lays every biome out in Workspace for review, and stores a clean
+	template copy of each asset in ServerStorage.AssetKitModels/<Biome>.
 
-	Biomes are laid out along -Z from the spawn: each sits on its own recoloured
-	baseplate, and the next biome's gate stands on the border between them.
-	Running it again replaces the previous showcase.
+	Each biome sits on its own copy of the place's default Baseplate, recoloured.
+	The Base plate is centred on the origin (where the default SpawnLocation is),
+	and each next biome follows along -Z. Running it again replaces the showcase.
 ]]
 
 local Workspace = game:GetService("Workspace")
@@ -15,11 +15,9 @@ local Kit = require(script.Parent.Kit)
 
 local Showcase = {}
 
-Showcase.PlateSize = 320
-Showcase.Gap = 0
-Showcase.Margin = 16
-Showcase.Spacing = 10
-Showcase.BorderReserve = 30 -- keeps the first row clear of the biome gate
+Showcase.PlateSize = 256
+Showcase.Margin = 24
+Showcase.Spacing = 12
 
 local function labelAnchor(parent: Instance, model: Model, text: string)
 	local cf, size = model:GetBoundingBox()
@@ -36,23 +34,20 @@ end
 
 local function layoutBiome(biome, plateCenter: CFrame, showFolder: Instance, storeFolder: Instance, labels: Instance)
 	local half = Showcase.PlateSize / 2 - Showcase.Margin
-	local x, z = -half, half - Showcase.BorderReserve -- rows start near the +Z edge, behind the gate
+	-- Base plate: keep the middle (spawn) clear by starting rows past it.
+	local x, z = -half, -16
 	local rowDepth = 0
 	for _, asset in biome.assets do
 		local fp = asset.footprint
-		local cf
-		if asset.placeAtBorder then
-			cf = plateCenter * CFrame.new(0, 0, Showcase.PlateSize / 2)
-		else
-			if x + fp > half then
-				x = -half
-				z -= rowDepth + Showcase.Spacing
-				rowDepth = 0
-			end
-			cf = plateCenter * CFrame.new(x + fp / 2, 0, z - fp / 2)
-			x += fp + Showcase.Spacing
-			rowDepth = math.max(rowDepth, fp)
+		if x + fp > half then
+			x = -half
+			z -= rowDepth + Showcase.Spacing
+			rowDepth = 0
 		end
+		local cf = plateCenter * CFrame.new(x + fp / 2, 0, z - fp / 2)
+		x += fp + Showcase.Spacing
+		rowDepth = math.max(rowDepth, fp)
+
 		local model = asset.build(showFolder, cf)
 		labelAnchor(labels, model, asset.name)
 
@@ -62,34 +57,42 @@ local function layoutBiome(biome, plateCenter: CFrame, showFolder: Instance, sto
 	end
 end
 
+-- An earlier version of this script hid the template's Baseplate and SpawnLocation.
+local function restoreTemplate()
+	local spawn = Workspace:FindFirstChild("SpawnLocation")
+	if spawn and spawn:IsA("SpawnLocation") then
+		spawn.Enabled = true
+		spawn.Transparency = 0
+		spawn.CanCollide = true
+		local decal = spawn:FindFirstChildOfClass("Decal")
+		if decal then
+			decal.Transparency = 0
+		end
+	end
+end
+
 function Showcase.build(biomes)
-	local old = Workspace:FindFirstChild("AssetShowcase")
-	if old then
-		old:Destroy()
+	local oldShow = Workspace:FindFirstChild("AssetShowcase")
+	if oldShow then
+		oldShow:Destroy()
 	end
 	local oldStore = ServerStorage:FindFirstChild("AssetKitModels")
 	if oldStore then
 		oldStore:Destroy()
 	end
+	restoreTemplate()
 
-	-- Our recoloured baseplates replace the template's grey one.
-	local defaultBase = Workspace:FindFirstChild("Baseplate")
-	if defaultBase and defaultBase:IsA("BasePart") then
-		defaultBase.Transparency = 1
-		defaultBase.CanCollide = false
-		local tex = defaultBase:FindFirstChildOfClass("Texture")
-		if tex then
-			tex.Transparency = 1
-		end
-	end
-	local defaultSpawn = Workspace:FindFirstChild("SpawnLocation")
-	if defaultSpawn and defaultSpawn:IsA("SpawnLocation") then
-		defaultSpawn.Enabled = false
-		defaultSpawn.Transparency = 1
-		defaultSpawn.CanCollide = false
-		local decal = defaultSpawn:FindFirstChildOfClass("Decal")
-		if decal then
-			decal.Transparency = 1
+	-- Clone the place's own Baseplate before hiding it, so every biome's ground
+	-- is the genuine article (same part, same texture), only recoloured.
+	local native = Kit.nativeBaseplate()
+	local source = native and native:Clone()
+	if native then
+		native.Transparency = 1
+		native.CanCollide = false
+		for _, tex in native:GetChildren() do
+			if tex:IsA("Texture") then
+				tex.Transparency = 1
+			end
 		end
 	end
 
@@ -100,7 +103,7 @@ function Showcase.build(biomes)
 
 	for index, biome in biomes do
 		local name = biome.palette.Name
-		local center = CFrame.new(0, 0, -(index - 1) * (Showcase.PlateSize + Showcase.Gap))
+		local center = CFrame.new(0, 0, -(index - 1) * Showcase.PlateSize)
 
 		local biomeFolder = Instance.new("Folder")
 		biomeFolder.Name = name
@@ -112,9 +115,8 @@ function Showcase.build(biomes)
 		storeFolder.Name = name
 		storeFolder.Parent = store
 
-		Kit.ground(biomeFolder, center, biome.palette, { sizeX = Showcase.PlateSize, sizeZ = Showcase.PlateSize })
-		local groundTemplate = Kit.ground(storeFolder, CFrame.new(), biome.palette, { name = "Ground" })
-		groundTemplate.Name = "Ground"
+		Kit.ground(biomeFolder, center, biome.palette, { source = source, sizeX = Showcase.PlateSize, sizeZ = Showcase.PlateSize })
+		Kit.ground(storeFolder, CFrame.new(), biome.palette, { source = source, name = "Baseplate" })
 
 		layoutBiome(biome, center, biomeFolder, storeFolder, labels)
 	end

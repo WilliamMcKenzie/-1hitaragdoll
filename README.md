@@ -1,28 +1,28 @@
 # +1 Hit a Ragdoll
 
-## AssetKit (studded blocky art kit)
+## AssetKit (ground, walls, trees)
 
-`src/AssetKit` generates every environment asset in code, so a new biome is a new
-palette plus an asset list.
+`src/AssetKit` builds the environment in code, so a new biome is a new palette
+plus an asset list.
 
-- Ground: the native Roblox baseplate (plastic slab + the default baseplate grid
-  texture), recoloured per biome.
-- Everything else: anchored Plastic parts with Studs on every face (Inlet tops on
-  plazas and pads), with alternating shades per block.
+- Ground: a clone of the place's own default `Workspace.Baseplate` (same part,
+  same native texture) with only its colour changed per biome.
+- Walls and trees: anchored Plastic parts with Studs on every face, in
+  alternating shades per 4-stud block.
 
 | File | What it holds |
 | --- | --- |
-| `Palette.luau` | Colours per biome, baseplate texture settings |
+| `Palette.luau` | Colours per biome |
 | `Builder.luau` | Part / block / label helpers |
-| `Kit.luau` | Generators: ground, terrace cliff, wall, tree, bush, tuft, flower, rock, plaza, ramp, pad, stand, crystal block, biome gate |
-| `Biomes/Base.luau`, `Biomes/Meadow.luau` | The asset list for each biome |
+| `Kit.luau` | Generators: ground, wall, wall corner, tree |
+| `Biomes/Base.luau`, `Biomes/Meadow.luau` | The trees and walls for each biome |
 | `Showcase.luau` | Lays every biome out in Workspace for review |
 
 ### See it in Studio
 
 1. Open any Baseplate place.
 2. Open View > Command Bar, paste all of `build/BuildAssetShowcase.lua`, press Enter.
-3. Press Play. You spawn on the Base plaza; the Meadow is through the gate to the north.
+3. Press Play. You spawn on the Base plate; the Meadow plate is next to it to the north.
 
 The showcase lands in `Workspace.AssetShowcase` with a label over each asset, and a
 clean template of every asset goes to `ServerStorage.AssetKitModels/<Biome>`.
