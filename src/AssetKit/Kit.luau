@@ -60,6 +60,8 @@ function Kit.ground(parent, origin: CFrame, pal, opts)
 	p.CanCollide = true
 	p.Anchored = true
 	p.Locked = false
+	p.Material = Enum.Material.Plastic
+	p.Reflectance = 0
 	for _, tex in p:GetChildren() do
 		if tex:IsA("Texture") and tex.Transparency >= 1 then
 			tex.Transparency = settings.TextureTransparency

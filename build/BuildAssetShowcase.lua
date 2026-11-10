@@ -194,7 +194,9 @@ function Builder.part(parent: Instance, size: Vector3, cf: CFrame, color: Color3
 	p.Size = size
 	p.CFrame = cf
 	p.Color = color
+	-- matte everywhere: Plastic (studs render on it) with no reflectance
 	p.Material = o.material or Enum.Material.Plastic
+	p.Reflectance = 0
 	Builder.applyStyle(p, style)
 	p.CanCollide = o.canCollide ~= false
 	p.CastShadow = o.castShadow ~= false
@@ -320,6 +322,8 @@ function Kit.ground(parent, origin: CFrame, pal, opts)
 	p.CanCollide = true
 	p.Anchored = true
 	p.Locked = false
+	p.Material = Enum.Material.Plastic
+	p.Reflectance = 0
 	for _, tex in p:GetChildren() do
 		if tex:IsA("Texture") and tex.Transparency >= 1 then
 			tex.Transparency = settings.TextureTransparency

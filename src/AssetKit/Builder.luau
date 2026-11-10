@@ -111,7 +111,9 @@ function Builder.part(parent: Instance, size: Vector3, cf: CFrame, color: Color3
 	p.Size = size
 	p.CFrame = cf
 	p.Color = color
+	-- matte everywhere: Plastic (studs render on it) with no reflectance
 	p.Material = o.material or Enum.Material.Plastic
+	p.Reflectance = 0
 	Builder.applyStyle(p, style)
 	p.CanCollide = o.canCollide ~= false
 	p.CastShadow = o.castShadow ~= false
