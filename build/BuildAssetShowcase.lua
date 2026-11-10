@@ -120,7 +120,8 @@ function Builder.addGrid(p: BasePart)
 	local g = Builder.Grid
 	for _, face in NORMALS do
 		local t = Instance.new("Texture")
-		t.Name = "Grid"
+		-- unique names: Rojo can drop siblings that share a name when it syncs
+		t.Name = "Grid" .. face.Name
 		t.Face = face
 		t.Texture = g.Texture
 		t.StudsPerTileU = g.StudsPerTileU
@@ -200,9 +201,8 @@ function Builder.part(parent: Instance, size: Vector3, cf: CFrame, color: Color3
 	if o.transparency then
 		p.Transparency = o.transparency
 	end
-	if o.name then
-		p.Name = o.name
-	end
+	-- unique sibling names keep Rojo syncs reliable
+	p.Name = o.name or ("Block" .. (#parent:GetChildren() + 1))
 	p.Parent = parent
 	return p
 end

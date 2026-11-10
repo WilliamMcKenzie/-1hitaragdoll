@@ -26,6 +26,9 @@ local function value(k, v)
 		return q(v)
 	end
 	if t == "table" then
+		if v.__enum then
+			return q(v.Name)
+		end
 		if v.__udim2 then
 			local u = v.__udim2
 			return string.format('{"UDim2":[[%s,%s],[%s,%s]]}', n(u[1]), n(u[2]), n(u[3]), n(u[4]))

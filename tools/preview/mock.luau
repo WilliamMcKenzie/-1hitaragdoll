@@ -94,7 +94,9 @@ end
 
 local Enum = setmetatable({}, {
 	__index = function(_, cat)
-		return setmetatable({}, { __index = function(_, item) return cat .. "." .. item end })
+		return setmetatable({}, { __index = function(_, item)
+			return setmetatable({ Name = item, __enum = cat }, { __tostring = function() return cat .. "." .. item end })
+		end })
 	end,
 })
 
