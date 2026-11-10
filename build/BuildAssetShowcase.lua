@@ -625,11 +625,11 @@ end
 -- Shadowed ground comes out about 77% of the lit ground, as there.
 Lighting.Settings = {
 	Technology = Enum.Technology.ShadowMap,
-	Brightness = 1.4,
+	Brightness = 2,
 	ClockTime = 13,
 	GeographicLatitude = 41.7,
-	Ambient = rgb(225, 225, 225),
-	OutdoorAmbient = rgb(225, 225, 225),
+	Ambient = rgb(170, 170, 170),
+	OutdoorAmbient = rgb(170, 170, 170),
 	ColorShift_Top = rgb(0, 0, 0),
 	ColorShift_Bottom = rgb(0, 0, 0),
 	GlobalShadows = true,
@@ -641,7 +641,16 @@ Lighting.Settings = {
 	FogEnd = 100000,
 }
 
-Lighting.ColorCorrection = { Brightness = 0, Contrast = 0.05, Saturation = 0, TintColor = rgb(255, 255, 255) }
+Lighting.Atmosphere = {
+	Density = 0.3,
+	Offset = 0.25,
+	Color = rgb(199, 212, 230),
+	Decay = rgb(120, 150, 190),
+	Glare = 0,
+	Haze = 0.5,
+}
+
+Lighting.ColorCorrection = { Brightness = 0, Contrast = 0.05, Saturation = 0.3, TintColor = rgb(255, 255, 255) }
 
 -- Realistic Sky (Creator Store 4607457995), loaded at build time; the flat
 -- sky colour is the fallback if the insert fails (e.g. no permission).
@@ -684,11 +693,12 @@ function Lighting.apply()
 	for _, c in LightingService:GetChildren() do
 		if c:IsA("BloomEffect") or c:IsA("SunRaysEffect") or c:IsA("DepthOfFieldEffect") or c:IsA("BlurEffect") then
 			c.Enabled = false
-		elseif c:IsA("Atmosphere") then
-			c.Density = 0
-			c.Haze = 0
-			c.Glare = 0
 		end
+	end
+	-- light distance haze: near things stay crisp, the far scene fades to blue-grey
+	local atmosphere = child("Atmosphere", "Atmosphere") :: Atmosphere
+	for k, v in Lighting.Atmosphere do
+		(atmosphere :: any)[k] = v
 	end
 	local realistic = loadRealisticSky()
 	if realistic then
@@ -745,13 +755,13 @@ Palette.Baseplate = {
 -- Base / spawn area: olive yellow-green ground, yellow-green grass, purple-grey dirt.
 Palette.Base = {
 	Name = "Base",
-	Ground = rgb(196, 201, 76),
+	Ground = rgb(186, 189, 76),
 
-	Grass = rgb(201, 207, 72),
-	Dirt = rgb(124, 100, 110),
+	Grass = rgb(191, 195, 72),
+	Dirt = rgb(126, 100, 110),
 
-	Trunk = rgb(112, 92, 122),
-	Leaves = { rgb(201, 207, 72), rgb(186, 196, 60), rgb(214, 219, 98), rgb(142, 212, 92) },
+	Trunk = rgb(129, 105, 133),
+	Leaves = { rgb(191, 195, 72), rgb(177, 184, 60), rgb(203, 206, 98), rgb(83, 148, 79) },
 
 	Path = rgb(236, 196, 84),
 	PathTrim = rgb(214, 206, 232),
@@ -760,13 +770,13 @@ Palette.Base = {
 -- Biome 1, Meadow: bright green grass, mauve-brown dirt cliffs, purple trunks.
 Palette.Meadow = {
 	Name = "Meadow",
-	Ground = rgb(126, 204, 92),
+	Ground = rgb(121, 183, 95),
 
-	Grass = rgb(110, 196, 74),
-	Dirt = rgb(144, 112, 118),
+	Grass = rgb(116, 178, 88),
+	Dirt = rgb(132, 104, 115),
 
-	Trunk = rgb(110, 88, 114),
-	Leaves = { rgb(142, 212, 92), rgb(126, 200, 80), rgb(158, 220, 104) },
+	Trunk = rgb(129, 105, 133),
+	Leaves = { rgb(83, 148, 79), rgb(73, 140, 69), rgb(92, 154, 89) },
 
 	Path = rgb(236, 196, 84),
 	PathTrim = rgb(214, 206, 232),

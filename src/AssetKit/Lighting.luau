@@ -18,11 +18,11 @@ end
 -- Shadowed ground comes out about 77% of the lit ground, as there.
 Lighting.Settings = {
 	Technology = Enum.Technology.ShadowMap,
-	Brightness = 1.4,
+	Brightness = 2,
 	ClockTime = 13,
 	GeographicLatitude = 41.7,
-	Ambient = rgb(225, 225, 225),
-	OutdoorAmbient = rgb(225, 225, 225),
+	Ambient = rgb(170, 170, 170),
+	OutdoorAmbient = rgb(170, 170, 170),
 	ColorShift_Top = rgb(0, 0, 0),
 	ColorShift_Bottom = rgb(0, 0, 0),
 	GlobalShadows = true,
@@ -34,7 +34,16 @@ Lighting.Settings = {
 	FogEnd = 100000,
 }
 
-Lighting.ColorCorrection = { Brightness = 0, Contrast = 0.05, Saturation = 0, TintColor = rgb(255, 255, 255) }
+Lighting.Atmosphere = {
+	Density = 0.3,
+	Offset = 0.25,
+	Color = rgb(199, 212, 230),
+	Decay = rgb(120, 150, 190),
+	Glare = 0,
+	Haze = 0.5,
+}
+
+Lighting.ColorCorrection = { Brightness = 0, Contrast = 0.05, Saturation = 0.3, TintColor = rgb(255, 255, 255) }
 
 -- Realistic Sky (Creator Store 4607457995), loaded at build time; the flat
 -- sky colour is the fallback if the insert fails (e.g. no permission).
@@ -77,11 +86,12 @@ function Lighting.apply()
 	for _, c in LightingService:GetChildren() do
 		if c:IsA("BloomEffect") or c:IsA("SunRaysEffect") or c:IsA("DepthOfFieldEffect") or c:IsA("BlurEffect") then
 			c.Enabled = false
-		elseif c:IsA("Atmosphere") then
-			c.Density = 0
-			c.Haze = 0
-			c.Glare = 0
 		end
+	end
+	-- light distance haze: near things stay crisp, the far scene fades to blue-grey
+	local atmosphere = child("Atmosphere", "Atmosphere") :: Atmosphere
+	for k, v in Lighting.Atmosphere do
+		(atmosphere :: any)[k] = v
 	end
 	local realistic = loadRealisticSky()
 	if realistic then

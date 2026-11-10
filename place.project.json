@@ -130,21 +130,21 @@
       "$className": "Lighting",
       "$properties": {
         "Technology": "ShadowMap",
-        "Brightness": 1.4,
+        "Brightness": 2.0,
         "ClockTime": 13,
         "GeographicLatitude": 41.7,
         "Ambient": {
           "Color3": [
-            0.8823529411764706,
-            0.8823529411764706,
-            0.8823529411764706
+            0.6666666666666666,
+            0.6666666666666666,
+            0.6666666666666666
           ]
         },
         "OutdoorAmbient": {
           "Color3": [
-            0.8823529411764706,
-            0.8823529411764706,
-            0.8823529411764706
+            0.6666666666666666,
+            0.6666666666666666,
+            0.6666666666666666
           ]
         },
         "ColorShift_Top": {
@@ -186,7 +186,7 @@
         "$className": "ColorCorrectionEffect",
         "$properties": {
           "Contrast": 0.05,
-          "Saturation": 0,
+          "Saturation": 0.3,
           "Brightness": 0,
           "TintColor": {
             "Color3": [
@@ -195,6 +195,29 @@
               1
             ]
           }
+        }
+      },
+      "Atmosphere": {
+        "$className": "Atmosphere",
+        "$properties": {
+          "Density": 0.3,
+          "Offset": 0.25,
+          "Color": {
+            "Color3": [
+              0.7803921568627451,
+              0.8313725490196079,
+              0.9019607843137255
+            ]
+          },
+          "Decay": {
+            "Color3": [
+              0.47058823529411764,
+              0.5882352941176471,
+              0.7450980392156863
+            ]
+          },
+          "Glare": 0,
+          "Haze": 0.5
         }
       }
     }
