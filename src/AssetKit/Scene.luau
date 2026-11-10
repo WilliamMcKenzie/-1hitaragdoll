@@ -148,9 +148,8 @@ function Scene.build(parent: Instance, center: CFrame, pal, opts)
 		Kit.tree(trees, center * CFrame.new(x, y, z), pal, {
 			name = "Tree",
 			height = math.floor(h),
-			trunk = if h > 20 then 3 else 2,
-			canopy = math.floor(h * (0.55 + 0.15 * rng:NextNumber())),
-			branches = rng:NextInteger(1, 3),
+			canopy = math.floor(h * (0.8 + 0.2 * rng:NextNumber())),
+			branches = rng:NextInteger(1, 2),
 			seed = rng:NextInteger(1, 99999),
 		})
 	end
@@ -160,14 +159,14 @@ function Scene.build(parent: Instance, center: CFrame, pal, opts)
 	local placed = {}
 	local inner = half - 44
 	local tries = 0
-	while #placed < (opts.trees or 18) and tries < 2000 do
+	while #placed < (opts.trees or 14) and tries < 2000 do
 		tries += 1
 		local x = (rng:NextNumber() * 2 - 1) * inner
 		local z = (rng:NextNumber() * 2 - 1) * inner
 		local ok = distToLegs(legs, x, z) > width + 6
 		if ok then
 			for _, p in placed do
-				if (p - Vector2.new(x, z)).Magnitude < 24 then
+				if (p - Vector2.new(x, z)).Magnitude < 30 then
 					ok = false
 					break
 				end

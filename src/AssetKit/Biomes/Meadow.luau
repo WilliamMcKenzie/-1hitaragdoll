@@ -12,13 +12,13 @@ return {
 	palette = P,
 	assets = {
 		{ name = "TreeTall", footprint = 40, build = function(parent, cf)
-			return Kit.tree(parent, cf, P, { name = "TreeTall", height = 34, trunk = 3, canopy = 22, branches = 3, seed = 41 })
+			return Kit.tree(parent, cf, P, { name = "TreeTall", height = 34, canopy = 30, branches = 2, seed = 41 })
 		end },
 		{ name = "TreeRound", footprint = 34, build = function(parent, cf)
-			return Kit.tree(parent, cf, P, { name = "TreeRound", height = 24, trunk = 3, canopy = 18, branches = 2, seed = 42 })
+			return Kit.tree(parent, cf, P, { name = "TreeRound", height = 24, canopy = 24, branches = 2, seed = 42 })
 		end },
 		{ name = "TreeSmall", footprint = 22, build = function(parent, cf)
-			return Kit.tree(parent, cf, P, { name = "TreeSmall", height = 14, trunk = 2, canopy = 11, branches = 1, seed = 43 })
+			return Kit.tree(parent, cf, P, { name = "TreeSmall", height = 14, canopy = 16, branches = 1, seed = 43 })
 		end },
 		{ name = "Wall", footprint = 34, build = function(parent, cf)
 			return Kit.wall(parent, cf, P, { name = "Wall", length = 32, height = 16 })

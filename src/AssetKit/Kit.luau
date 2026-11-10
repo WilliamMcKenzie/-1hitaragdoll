@@ -183,49 +183,75 @@ function Kit.canopy(m, origin: CFrame, pal, rng: Random, width: number)
 end
 
 --------------------------------------------------------------------------------
--- Voxel tree: straight stepped trunk with a root flare, branches that stair-step
--- out and up from the middle of the trunk and end in their own leaf clumps
--- (below and outside the crown), and a wide layered crown on top.
--- opts: height, trunk (width), canopy (crown width), branches, reach, seed
+-- Tree, after QM's reference: one thick flat-colour trunk, a couple of chunky
+-- branches made of two angled segments with a leaf clump on each end, and a
+-- crown of a few big, wide, flat slabs stacked and offset from each other.
+-- One leaf colour per tree. opts: height, trunk (width), canopy (crown width),
+-- branches, seed
 --------------------------------------------------------------------------------
+local function clump(m, origin: CFrame, c: Color3, rng: Random, w: number, idx: number)
+	local e = idx * 0.03
+	block(m, origin, 0, 0, 0, V3(w + e, math.max(4, math.floor(w * 0.7)) + e, math.floor(w * 0.9) + e), c, "studs")
+	local w2 = math.max(3, math.floor(w * 0.6))
+	block(m, origin, (rng:NextNumber() - 0.5) * w * 0.5, math.floor(w * 0.45), (rng:NextNumber() - 0.5) * w * 0.5, V3(w2 + e + 0.01, math.floor(w2 * 0.8) + e, w2 + e), c, "studs")
+end
+
+-- a straight segment from `start` (local space), heading `yaw` around Y and
+-- tilted `tilt` radians off vertical; returns the far end
+local function limb(m, origin: CFrame, start: Vector3, yaw: number, tilt: number, len: number, width: number, c: Color3): Vector3
+	local d = V3(math.cos(yaw), 0, -math.sin(yaw))
+	local axis = V3(0, math.cos(tilt), 0) + d * math.sin(tilt)
+	local center = start + axis * (len / 2)
+	local rot = CFrame.Angles(0, yaw, 0) * CFrame.Angles(0, 0, -tilt)
+	Builder.part(m, V3(width, len + width * 0.5, width), origin * CFrame.new(center) * rot, c, "studs")
+	return start + axis * len
+end
+
 function Kit.tree(parent, origin: CFrame, pal, opts)
 	opts = opts or {}
 	local rng = rngFor(opts)
-	local H = opts.height or 26
-	local tw = opts.trunk or 3
-	local crown = opts.canopy or 16
+	local H = opts.height or 28
+	local tw = opts.trunk or math.max(4, math.floor(H / 5))
+	local crown = opts.canopy or math.floor(H * 0.9)
+	local leaf = Builder.pick(pal.Leaves, rng)
 	local m = Builder.model(opts.name or "Tree", parent, origin)
 
-	-- root flare + trunk in 4-stud segments with alternating shade
-	block(m, origin, 0, 0, 0, V3(tw + 2, 1, tw + 2), pal.Trunk, "studs")
-	block(m, origin, 0, 1, 0, V3(tw + 1, 1, tw + 1), pal.Trunk, "studs")
-	block(m, origin, 0, 2, 0, V3(tw, H - 2, tw), pal.Trunk, "studs")
+	-- trunk: one thick block, a slightly wider foot
+	block(m, origin, 0, 0, 0, V3(tw + 1, 1, tw + 1), pal.Trunk, "studs")
+	block(m, origin, 0, 0, 0, V3(tw, H, tw), pal.Trunk, "studs")
 
-	Kit.canopy(m, origin * CFrame.new(0, H - 1, 0), pal, rng, crown)
+	-- crown: big flat slabs, stacked and offset
+	local idx = 0
+	local function slab(x, y, z, w, h, d)
+		idx += 1
+		local e = idx * 0.03
+		block(m, origin, x, y - e / 2, z, V3(math.floor(w) + e, h + e, math.floor(d) + e), leaf, "studs")
+	end
+	local top = H - 2
+	slab(0, top - 3, 0, crown * 0.6, 3, crown * 0.55) -- underside
+	slab((rng:NextNumber() - 0.5) * 4, top, (rng:NextNumber() - 0.5) * 4, crown, 6, crown * 0.85)
+	local ang = rng:NextNumber() * math.pi * 2
+	for i = 1, 2 do
+		ang += math.pi * (0.7 + 0.6 * rng:NextNumber())
+		local r = crown * (0.14 + 0.08 * rng:NextNumber())
+		slab(math.cos(ang) * r, top + 1 + i * 4, math.sin(ang) * r, crown * (0.8 - i * 0.15), 5, crown * (0.7 - i * 0.12))
+	end
+	-- a loose block hanging off one corner, like the reference
+	local ca = rng:NextNumber() * math.pi * 2
+	slab(math.cos(ca) * crown * 0.42, top - 2, math.sin(ca) * crown * 0.42, crown * 0.3, 5, crown * 0.3)
 
-	-- branches: first one picks a random side, later ones go to the other sides
-	local dirs = { V3(1, 0, 0), V3(0, 0, 1), V3(-1, 0, 0), V3(0, 0, -1) }
-	local start = rng:NextInteger(0, 3)
+	-- branches: two angled segments each, ending in a clump below the crown edge
 	local count = math.min(opts.branches or 2, 4)
-	local bw = tw
-	local reach = opts.reach or (crown * 0.5 + 2) -- ends just outside the crown edge
+	local bw = math.max(2, math.floor(tw * 0.6))
+	local yaw0 = rng:NextNumber() * math.pi * 2
 	for b = 1, count do
-		-- opposite sides first (0, 2), then the remaining two (1, 3)
-		local order = { 0, 2, 1, 3 }
-		local d = dirs[(start + order[b]) % 4 + 1]
-		local by = math.floor(H * (0.38 + 0.14 * rng:NextNumber()) + (b - 1) * 2)
-		local pos = V3(0, by, 0) + d * (tw / 2)
-		local out = 0
-		local thisReach = reach * (0.8 + 0.3 * rng:NextNumber())
-		-- stair-step: two out, one up, until the branch clears the crown
-		while out < thisReach do
-			pos += d * 2 + V3(0, 1.5, 0)
-			out += 2
-			block(m, origin, pos.X, pos.Y - bw / 2, pos.Z, V3(bw, bw, bw), pal.Trunk, "studs")
-		end
-		-- short upward tip into the clump
-		block(m, origin, pos.X, pos.Y - bw / 2, pos.Z, V3(bw, 4, bw), pal.Trunk, "studs")
-		Kit.canopy(m, origin * CFrame.new(pos.X, pos.Y + 3, pos.Z), pal, rng, crown * 0.5)
+		local yaw = yaw0 + (b - 1) * (math.pi * 2 / count) + (rng:NextNumber() - 0.5) * 0.6
+		local hb = H * (0.3 + 0.12 * rng:NextNumber())
+		local d = V3(math.cos(yaw), 0, -math.sin(yaw))
+		local start = V3(0, hb, 0) + d * (tw / 2 - bw / 2)
+		local mid = limb(m, origin, start, yaw, math.rad(50 + rng:NextNumber() * 12), math.max(5, crown * 0.32), bw, pal.Trunk)
+		local tip = limb(m, origin, mid, yaw, math.rad(12 + rng:NextNumber() * 12), 3 + rng:NextInteger(0, 1), bw, pal.Trunk)
+		clump(m, origin * CFrame.new(tip.X, tip.Y - 2, tip.Z), leaf, rng, math.max(6, math.floor(crown * 0.35)), b)
 	end
 	return m
 end
