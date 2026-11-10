@@ -39,7 +39,8 @@ local function value(k, v)
 		if v.p and v.r then
 			local r = v.r
 			return string.format('{"CFrame":{"position":[%s,%s,%s],"orientation":[[%s,%s,%s],[%s,%s,%s],[%s,%s,%s]]}}',
-				n(v.p[1]), n(v.p[2]), n(v.p[3]), n(r[1]), n(r[4]), n(r[7]), n(r[2]), n(r[5]), n(r[8]), n(r[3]), n(r[6]), n(r[9]))
+				-- rows of the rotation matrix (rbx_types Matrix3 x/y/z are rows)
+				n(v.p[1]), n(v.p[2]), n(v.p[3]), n(r[1]), n(r[2]), n(r[3]), n(r[4]), n(r[5]), n(r[6]), n(r[7]), n(r[8]), n(r[9]))
 		end
 		if v.X then
 			return string.format('{"Vector3":[%s,%s,%s]}', n(v.X), n(v.Y), n(v.Z))
