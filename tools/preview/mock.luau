@@ -246,11 +246,11 @@ local function dump()
 			local c, s, col = p.CFrame, p.Size, p.Color
 			local tex = p:FindFirstChildOfClass("Texture")
 			table.insert(rows, string.format(
-				'{"c":"%s","s":[%s,%s,%s],"p":[%s,%s,%s],"r":[%s],"col":[%s,%s,%s],"top":"%s","side":"%s","mat":"%s","grid":%s}',
+				'{"c":"%s","s":[%s,%s,%s],"p":[%s,%s,%s],"r":[%s],"col":[%s,%s,%s],"top":"%s","side":"%s","mat":"%s","grid":%s,"tex":"%s"}',
 				p.ClassName, num(s.X), num(s.Y), num(s.Z), num(c.p[1]), num(c.p[2]), num(c.p[3]),
 				table.concat((function() local t = {} for i = 1, 9 do t[i] = num(c.r[i]) end return t end)(), ","),
 				num(col.R), num(col.G), num(col.B), tostring(p.TopSurface), tostring(p.FrontSurface), tostring(p.Material),
-				if tex then tostring(tex.StudsPerTileU) else "0"
+				if tex then tostring(tex.StudsPerTileU) else "0", if tex then tostring(tex.Texture) else ""
 			))
 		end
 	end

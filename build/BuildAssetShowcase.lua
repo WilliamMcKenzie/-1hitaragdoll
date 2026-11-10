@@ -84,8 +84,8 @@ __modules["Builder"] = function()
 --[[
 	Builder: low-level helpers for the studded blocky style.
 
-	All parts are anchored Plastic with Studs on every face ("studs"), an Inlet top
-	("inlet"), or no surface detail ("smooth"). Positions are given in the local
+	All parts are anchored matte SmoothPlastic in one flat colour, with QM's stud
+	texture on every face ("studs"), an Inlet top ("inlet"), or no detail ("smooth"). Positions are given in the local
 	space of an origin CFrame, so every asset can be built at any spot and rotation.
 ]]
 
@@ -114,6 +114,15 @@ function Builder.useGridFrom(tex: Texture)
 	}
 end
 
+-- QM's L-stud texture (Figma stud tile, same asset FightToStealAnEgg uses for
+-- its HUD). Mostly transparent, so the part's own flat colour shows through.
+-- One tile is 4x4 studs.
+Builder.Studs = {
+	Texture = "rbxassetid://100359261064701",
+	StudsPerTile = 4,
+	Transparency = 0,
+}
+
 local NORMALS = { Enum.NormalId.Top, Enum.NormalId.Bottom, Enum.NormalId.Left, Enum.NormalId.Right, Enum.NormalId.Front, Enum.NormalId.Back }
 
 function Builder.addGrid(p: BasePart)
@@ -128,6 +137,21 @@ function Builder.addGrid(p: BasePart)
 		t.StudsPerTileV = g.StudsPerTileV
 		t.Transparency = g.Transparency
 		t.Color3 = g.Color3
+		t.Parent = p
+	end
+end
+
+function Builder.addStuds(p: BasePart)
+	local st = Builder.Studs
+	for _, face in NORMALS do
+		local t = Instance.new("Texture")
+		t.Name = "Studs" .. face.Name
+		t.Face = face
+		t.Texture = st.Texture
+		t.StudsPerTileU = st.StudsPerTile
+		t.StudsPerTileV = st.StudsPerTile
+		t.Transparency = st.Transparency
+		t.Color3 = Color3.new(1, 1, 1)
 		t.Parent = p
 	end
 end
@@ -164,15 +188,17 @@ end
 
 function Builder.applyStyle(p: BasePart, style: Style?)
 	style = style or "studs"
-	local surface = if style == "studs" then Enum.SurfaceType.Studs else Enum.SurfaceType.Smooth
+	-- studs come from QM's stud texture, not Roblox's SurfaceType.Studs
 	for _, face in FACES do
-		(p :: any)[face] = surface
+		(p :: any)[face] = Enum.SurfaceType.Smooth
 	end
 	if style == "inlet" then
 		p.TopSurface = Enum.SurfaceType.Inlet
 	end
 	-- obstacles are flat colour with studs only (QM): no grid texture, no checker.
-	-- Builder.addGrid is kept for anything that explicitly wants the baseplate grid.
+	if style == "studs" then
+		Builder.addStuds(p)
+	end
 end
 
 type PartOpts = {
@@ -192,8 +218,8 @@ function Builder.part(parent: Instance, size: Vector3, cf: CFrame, color: Color3
 	p.Size = size
 	p.CFrame = cf
 	p.Color = color
-	-- matte everywhere: Plastic (studs render on it) with no reflectance
-	p.Material = o.material or Enum.Material.Plastic
+	-- matte everywhere: flat SmoothPlastic with no reflectance
+	p.Material = o.material or Enum.Material.SmoothPlastic
 	p.Reflectance = 0
 	Builder.applyStyle(p, style)
 	p.CanCollide = o.canCollide ~= false

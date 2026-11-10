@@ -95,6 +95,9 @@ for (const p of window.PARTS) {
   let mesh;
   if (p.c === "WedgePart") {
     mesh = new THREE.Mesh(wedgeGeo(sx, sy, sz), mat(plainTex, p.col, neon));
+  } else if (p.grid > 0 && p.tex === "rbxassetid://100359261064701") {
+    // QM's stud tile: 4x4 studs per tile, drawn here as one stud per canvas tile
+    mesh = new THREE.Mesh(studBox(sx, sy, sz, p.grid / 4), mat(studTex, p.col, false));
   } else if (p.grid > 0) {
     const g = studBox(sx, sy, sz, p.grid);
     mesh = new THREE.Mesh(g, mat(gridTex, p.col, false));
@@ -105,7 +108,7 @@ for (const p of window.PARTS) {
   const r = p.r;
   const m = new THREE.Matrix4().set(r[0], r[1], r[2], p.p[0], r[3], r[4], r[5], p.p[1], r[6], r[7], r[8], p.p[2], 0, 0, 0, 1);
   mesh.applyMatrix4(m);
-  mesh.castShadow = !p.grid; mesh.receiveShadow = true;
+  mesh.castShadow = !(p.grid && p.tex !== "rbxassetid://100359261064701"); mesh.receiveShadow = true;
   scene.add(mesh);
 }
 
