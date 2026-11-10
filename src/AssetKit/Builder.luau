@@ -78,7 +78,9 @@ end
 
 local FACES = { "TopSurface", "BottomSurface", "LeftSurface", "RightSurface", "FrontSurface", "BackSurface" }
 
-export type Style = "studs" | "inlet" | "smooth"
+-- "terrain": studs plus the native baseplate grid (walls, cliffs)
+-- "studs": studs only, flat colour (trees, bushes, small obstacles)
+export type Style = "terrain" | "studs" | "inlet" | "smooth"
 
 -- f > 0 lightens towards white, f < 0 darkens towards black.
 function Builder.shade(c: Color3, f: number): Color3
@@ -116,8 +118,12 @@ function Builder.applyStyle(p: BasePart, style: Style?)
 		p.TopSurface = Enum.SurfaceType.Inlet
 	end
 	-- obstacles are flat colour with studs only (QM): no grid texture, no checker.
-	if style == "studs" then
+	if style == "studs" or style == "terrain" then
 		Builder.addStuds(p)
+	end
+	if style == "terrain" then
+		-- walls and cliffs also carry the native baseplate grid
+		Builder.addGrid(p)
 	end
 end
 

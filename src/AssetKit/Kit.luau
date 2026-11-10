@@ -78,8 +78,8 @@ function Kit.ground(parent, origin: CFrame, pal, opts)
 end
 
 --------------------------------------------------------------------------------
--- Walls: one dirt slab and one grass cap per segment, flat colours with the
--- L-stud texture on every face.
+-- Walls: one dirt slab and one grass cap per segment, with the native
+-- baseplate grid and the L-stud texture on every face.
 -- opts: length, height, cap (grass thickness), depth,
 --       bands (a grass band every bandEvery studs, like the striped cliffs)
 --------------------------------------------------------------------------------
@@ -92,13 +92,13 @@ local function wallSlab(m, origin: CFrame, pal, x: number, z: number, sx: number
 		local top = if bandEvery then math.min(y + bandEvery, height - cap) else height - cap
 		local isBand = bandEvery ~= nil and top < height - cap
 		local dirtTop = if isBand then top - cap else top
-		block(m, origin, x, y, z, V3(sx, dirtTop - y, sz), pal.Dirt, "studs")
+		block(m, origin, x, y, z, V3(sx, dirtTop - y, sz), pal.Dirt, "terrain")
 		if isBand then
-			block(m, origin, x, dirtTop, z, V3(sx, cap, sz), pal.Grass, "studs")
+			block(m, origin, x, dirtTop, z, V3(sx, cap, sz), pal.Grass, "terrain")
 		end
 		y = top
 	end
-	block(m, origin, x, height - cap, z, V3(sx, cap, sz), pal.Grass, "studs")
+	block(m, origin, x, height - cap, z, V3(sx, cap, sz), pal.Grass, "terrain")
 end
 
 function Kit.wall(parent, origin: CFrame, pal, opts)
@@ -132,10 +132,10 @@ function Kit.cliff(parent, origin: CFrame, pal, opts)
 	local m = Builder.model(opts.name or "Cliff", parent, origin)
 	local foot = math.min(2, height - cap - 1)
 	if foot > 0 then
-		block(m, origin, 0, 0, 0, V3(sx, foot, sz), pal.Dirt, "studs")
+		block(m, origin, 0, 0, 0, V3(sx, foot, sz), pal.Dirt, "terrain")
 	end
-	block(m, origin, 0, math.max(foot, 0), 0, V3(sx, height - cap - math.max(foot, 0), sz), pal.Dirt, "studs")
-	block(m, origin, 0, height - cap, 0, V3(sx, cap, sz), pal.Grass, "studs")
+	block(m, origin, 0, math.max(foot, 0), 0, V3(sx, height - cap - math.max(foot, 0), sz), pal.Dirt, "terrain")
+	block(m, origin, 0, height - cap, 0, V3(sx, cap, sz), pal.Grass, "terrain")
 	return m
 end
 
