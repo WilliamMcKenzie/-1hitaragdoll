@@ -185,15 +185,27 @@ end
 --------------------------------------------------------------------------------
 -- Tree, after QM's reference: one thick flat-colour trunk, a couple of chunky
 -- branches made of two angled segments with a leaf clump on each end, and a
--- crown of a few big, wide, flat slabs stacked and offset from each other.
+-- crown made of a cluster of rounded voxel blobs.
 -- One leaf colour per tree. opts: height, trunk (width), canopy (crown width),
 -- branches, seed
 --------------------------------------------------------------------------------
+-- rounded voxel blob: three crossed boxes give a cube with stepped, bevelled
+-- edges (the look of the reference foliage). Centre at local (0, 0, 0).
+local function blob(m, origin: CFrame, c: Color3, size: number, idx: number)
+	local w = math.max(4, math.floor(size / 2) * 2)
+	local step = if w >= 10 then 4 else 2
+	local e = idx * 0.03 -- keeps coplanar faces of neighbouring blobs from z-fighting
+	Builder.box(m, origin, V3(0, 0, 0), V3(w + e, w - step + e, w - step + e), c, "studs")
+	Builder.box(m, origin, V3(0, 0, 0), V3(w - step + e + 0.01, w + e, w - step + e + 0.01), c, "studs")
+	Builder.box(m, origin, V3(0, 0, 0), V3(w - step + e + 0.02, w - step + e + 0.02, w + e), c, "studs")
+end
+
 local function clump(m, origin: CFrame, c: Color3, rng: Random, w: number, idx: number)
-	local e = idx * 0.03
-	block(m, origin, 0, 0, 0, V3(w + e, math.max(4, math.floor(w * 0.7)) + e, math.floor(w * 0.9) + e), c, "studs")
-	local w2 = math.max(3, math.floor(w * 0.6))
-	block(m, origin, (rng:NextNumber() - 0.5) * w * 0.5, math.floor(w * 0.45), (rng:NextNumber() - 0.5) * w * 0.5, V3(w2 + e + 0.01, math.floor(w2 * 0.8) + e, w2 + e), c, "studs")
+	blob(m, origin * CFrame.new(0, w / 2, 0), c, w, idx * 3)
+	if w >= 8 and rng:NextNumber() < 0.6 then
+		local a = rng:NextNumber() * math.pi * 2
+		blob(m, origin * CFrame.new(math.cos(a) * w * 0.4, w * 0.3, math.sin(a) * w * 0.4), c, w * 0.6, idx * 3 + 1)
+	end
 end
 
 -- a straight segment from `start` (local space), heading `yaw` around Y and
@@ -220,25 +232,23 @@ function Kit.tree(parent, origin: CFrame, pal, opts)
 	block(m, origin, 0, 0, 0, V3(tw + 1, 1, tw + 1), pal.Trunk, "studs")
 	block(m, origin, 0, 0, 0, V3(tw, H, tw), pal.Trunk, "studs")
 
-	-- crown: big flat slabs, stacked and offset
+	-- crown: a cluster of rounded blobs forming a dome over the trunk top
 	local idx = 0
-	local function slab(x, y, z, w, h, d)
+	local function puff(x, y, z, size)
 		idx += 1
-		local e = idx * 0.03
-		block(m, origin, x, y - e / 2, z, V3(math.floor(w) + e, h + e, math.floor(d) + e), leaf, "studs")
+		blob(m, origin * CFrame.new(x, y, z), leaf, size, idx)
 	end
-	local top = H - 2
-	slab(0, top - 3, 0, crown * 0.6, 3, crown * 0.55) -- underside
-	slab((rng:NextNumber() - 0.5) * 4, top, (rng:NextNumber() - 0.5) * 4, crown, 6, crown * 0.85)
-	local ang = rng:NextNumber() * math.pi * 2
-	for i = 1, 2 do
-		ang += math.pi * (0.7 + 0.6 * rng:NextNumber())
-		local r = crown * (0.14 + 0.08 * rng:NextNumber())
-		slab(math.cos(ang) * r, top + 1 + i * 4, math.sin(ang) * r, crown * (0.8 - i * 0.15), 5, crown * (0.7 - i * 0.12))
+	local top = H + crown * 0.15
+	local core = crown * 0.62
+	puff(0, top, 0, core)
+	local n = rng:NextInteger(3, 4)
+	local a0 = rng:NextNumber() * math.pi * 2
+	for i = 1, n do
+		local a = a0 + i * (math.pi * 2 / n) + (rng:NextNumber() - 0.5) * 0.5
+		local r = crown * (0.3 + 0.06 * rng:NextNumber())
+		puff(math.cos(a) * r, top - crown * 0.08 + rng:NextInteger(-1, 1) * 2, math.sin(a) * r, crown * (0.48 + 0.08 * rng:NextNumber()))
 	end
-	-- a loose block hanging off one corner, like the reference
-	local ca = rng:NextNumber() * math.pi * 2
-	slab(math.cos(ca) * crown * 0.42, top - 2, math.sin(ca) * crown * 0.42, crown * 0.3, 5, crown * 0.3)
+	puff((rng:NextNumber() - 0.5) * crown * 0.2, top + core * 0.45, (rng:NextNumber() - 0.5) * crown * 0.2, crown * 0.4)
 
 	-- branches: two angled segments each, ending in a clump below the crown edge
 	local count = math.min(opts.branches or 2, 4)
@@ -251,7 +261,7 @@ function Kit.tree(parent, origin: CFrame, pal, opts)
 		local start = V3(0, hb, 0) + d * (tw / 2 - bw / 2)
 		local mid = limb(m, origin, start, yaw, math.rad(50 + rng:NextNumber() * 12), math.max(5, crown * 0.32), bw, pal.Trunk)
 		local tip = limb(m, origin, mid, yaw, math.rad(12 + rng:NextNumber() * 12), 3 + rng:NextInteger(0, 1), bw, pal.Trunk)
-		clump(m, origin * CFrame.new(tip.X, tip.Y - 2, tip.Z), leaf, rng, math.max(6, math.floor(crown * 0.35)), b)
+		clump(m, origin * CFrame.new(tip.X, tip.Y - 3, tip.Z), leaf, rng, math.max(6, math.floor(crown * 0.32)), 20 + b)
 	end
 	return m
 end
