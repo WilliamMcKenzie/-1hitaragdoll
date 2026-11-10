@@ -6,7 +6,47 @@
 	space of an origin CFrame, so every asset can be built at any spot and rotation.
 ]]
 
+local Palette = require(script.Parent.Palette)
+
 local Builder = {}
+
+-- The grid texture laid over every studded face. It starts as the settings in
+-- Palette.Baseplate and is replaced by the place's own Baseplate texture when
+-- one exists (Builder.useGridFrom), so blocks get the same native checker grid.
+Builder.Grid = {
+	Texture = Palette.Baseplate.Texture,
+	StudsPerTileU = Palette.Baseplate.StudsPerTile,
+	StudsPerTileV = Palette.Baseplate.StudsPerTile,
+	Transparency = Palette.Baseplate.TextureTransparency,
+	Color3 = Palette.Baseplate.TextureColor,
+}
+
+function Builder.useGridFrom(tex: Texture)
+	Builder.Grid = {
+		Texture = tex.Texture,
+		StudsPerTileU = tex.StudsPerTileU,
+		StudsPerTileV = tex.StudsPerTileV,
+		Transparency = if tex.Transparency >= 1 then Palette.Baseplate.TextureTransparency else tex.Transparency,
+		Color3 = tex.Color3,
+	}
+end
+
+local NORMALS = { Enum.NormalId.Top, Enum.NormalId.Bottom, Enum.NormalId.Left, Enum.NormalId.Right, Enum.NormalId.Front, Enum.NormalId.Back }
+
+function Builder.addGrid(p: BasePart)
+	local g = Builder.Grid
+	for _, face in NORMALS do
+		local t = Instance.new("Texture")
+		t.Name = "Grid"
+		t.Face = face
+		t.Texture = g.Texture
+		t.StudsPerTileU = g.StudsPerTileU
+		t.StudsPerTileV = g.StudsPerTileV
+		t.Transparency = g.Transparency
+		t.Color3 = g.Color3
+		t.Parent = p
+	end
+end
 
 local FACES = { "TopSurface", "BottomSurface", "LeftSurface", "RightSurface", "FrontSurface", "BackSurface" }
 
@@ -46,6 +86,10 @@ function Builder.applyStyle(p: BasePart, style: Style?)
 	end
 	if style == "inlet" then
 		p.TopSurface = Enum.SurfaceType.Inlet
+	end
+	if style == "studs" then
+		-- the native baseplate grid gives the checkerboard; studs sit on top of it
+		Builder.addGrid(p)
 	end
 end
 

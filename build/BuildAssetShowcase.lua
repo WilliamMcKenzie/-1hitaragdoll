@@ -89,7 +89,47 @@ __modules["Builder"] = function()
 	space of an origin CFrame, so every asset can be built at any spot and rotation.
 ]]
 
+local Palette = __require("Palette")
+
 local Builder = {}
+
+-- The grid texture laid over every studded face. It starts as the settings in
+-- Palette.Baseplate and is replaced by the place's own Baseplate texture when
+-- one exists (Builder.useGridFrom), so blocks get the same native checker grid.
+Builder.Grid = {
+	Texture = Palette.Baseplate.Texture,
+	StudsPerTileU = Palette.Baseplate.StudsPerTile,
+	StudsPerTileV = Palette.Baseplate.StudsPerTile,
+	Transparency = Palette.Baseplate.TextureTransparency,
+	Color3 = Palette.Baseplate.TextureColor,
+}
+
+function Builder.useGridFrom(tex: Texture)
+	Builder.Grid = {
+		Texture = tex.Texture,
+		StudsPerTileU = tex.StudsPerTileU,
+		StudsPerTileV = tex.StudsPerTileV,
+		Transparency = if tex.Transparency >= 1 then Palette.Baseplate.TextureTransparency else tex.Transparency,
+		Color3 = tex.Color3,
+	}
+end
+
+local NORMALS = { Enum.NormalId.Top, Enum.NormalId.Bottom, Enum.NormalId.Left, Enum.NormalId.Right, Enum.NormalId.Front, Enum.NormalId.Back }
+
+function Builder.addGrid(p: BasePart)
+	local g = Builder.Grid
+	for _, face in NORMALS do
+		local t = Instance.new("Texture")
+		t.Name = "Grid"
+		t.Face = face
+		t.Texture = g.Texture
+		t.StudsPerTileU = g.StudsPerTileU
+		t.StudsPerTileV = g.StudsPerTileV
+		t.Transparency = g.Transparency
+		t.Color3 = g.Color3
+		t.Parent = p
+	end
+end
 
 local FACES = { "TopSurface", "BottomSurface", "LeftSurface", "RightSurface", "FrontSurface", "BackSurface" }
 
@@ -129,6 +169,10 @@ function Builder.applyStyle(p: BasePart, style: Style?)
 	end
 	if style == "inlet" then
 		p.TopSurface = Enum.SurfaceType.Inlet
+	end
+	if style == "studs" then
+		-- the native baseplate grid gives the checkerboard; studs sit on top of it
+		Builder.addGrid(p)
 	end
 end
 
@@ -254,6 +298,10 @@ function Kit.ground(parent, origin: CFrame, pal, opts)
 	opts = opts or {}
 	local settings = Palette.Baseplate
 	local source = opts.source or Kit.nativeBaseplate()
+	local nativeTex = source and source:FindFirstChildOfClass("Texture")
+	if nativeTex then
+		Builder.useGridFrom(nativeTex)
+	end
 	local p: BasePart
 	if source then
 		p = source:Clone()
@@ -281,51 +329,40 @@ function Kit.ground(parent, origin: CFrame, pal, opts)
 	p.Size = V3(opts.sizeX or p.Size.X, thickness, opts.sizeZ or p.Size.Z)
 	p.CFrame = origin * CFrame.new(0, -thickness / 2, 0)
 	p.Color = opts.color or pal.Ground
+	p.TopSurface = Enum.SurfaceType.Studs
 	p.Name = opts.name or (pal.Name .. "Baseplate")
 	p.Parent = parent
 	return p
 end
 
 --------------------------------------------------------------------------------
--- Walls: studded cliff segments built from 4x4 blocks in alternating shades,
--- a grass cap on top. Straight walls run along local X; corners turn 90 degrees.
--- opts: length, height, cap (grass thickness), depth, block, bands (grass band
---       every bandEvery studs, like the striped cliffs at spawn)
+-- Walls: one dirt slab and one grass cap per segment. The checkerboard comes
+-- from the native baseplate grid on each face, with studs on top of it.
+-- opts: length, height, cap (grass thickness), depth,
+--       bands (a grass band every bandEvery studs, like the striped cliffs)
 --------------------------------------------------------------------------------
-local function wallColumn(m, origin: CFrame, pal, x: number, z: number, col: number, opts, sx: number, sz: number)
+local function wallSlab(m, origin: CFrame, pal, x: number, z: number, sx: number, sz: number, opts)
 	local height = opts.height or 24
 	local cap = opts.cap or 4
-	local b = opts.block or 4
 	local bandEvery = opts.bands and (opts.bandEvery or 12) or nil
-	local y, row = 0, 0
+	local y = 0
 	while y < height - cap do
-		local h = math.min(b, height - cap - y)
-		local even = (col + row) % 2 == 0
-		local isBand = bandEvery ~= nil and (y + h) % bandEvery == 0 and y + h < height - cap
-		local color
+		local top = if bandEvery then math.min(y + bandEvery, height - cap) else height - cap
+		local isBand = bandEvery ~= nil and top < height - cap
+		local dirtTop = if isBand then top - cap else top
+		block(m, origin, x, y, z, V3(sx, dirtTop - y, sz), pal.Dirt, "studs")
 		if isBand then
-			color = if even then pal.Grass else pal.GrassAlt
-		else
-			color = if even then pal.Dirt else pal.DirtAlt
+			block(m, origin, x, dirtTop, z, V3(sx, cap, sz), pal.Grass, "studs")
 		end
-		block(m, origin, x, y, z, V3(sx, h, sz), color, "studs")
-		y += h
-		row += 1
+		y = top
 	end
-	local even = (col + row) % 2 == 0
-	block(m, origin, x, y, z, V3(sx, cap, sz), if even then pal.Grass else pal.GrassAlt, "studs")
+	block(m, origin, x, height - cap, z, V3(sx, cap, sz), pal.Grass, "studs")
 end
 
 function Kit.wall(parent, origin: CFrame, pal, opts)
 	opts = opts or {}
-	local len = opts.length or 32
-	local b = opts.block or 4
-	local depth = opts.depth or 4
 	local m = Builder.model(opts.name or "Wall", parent, origin)
-	local n = math.floor(len / b)
-	for i = 1, n do
-		wallColumn(m, origin, pal, (i - n / 2 - 0.5) * b, 0, i, opts, b, depth)
-	end
+	wallSlab(m, origin, pal, 0, 0, opts.length or 32, opts.depth or 4, opts)
 	return m
 end
 
@@ -333,16 +370,10 @@ end
 function Kit.wallCorner(parent, origin: CFrame, pal, opts)
 	opts = opts or {}
 	local len = opts.length or 16
-	local b = opts.block or 4
 	local depth = opts.depth or 4
 	local m = Builder.model(opts.name or "WallCorner", parent, origin)
-	local n = math.floor(len / b)
-	wallColumn(m, origin, pal, 0, 0, 0, opts, depth, depth)
-	for i = 1, n do
-		local d = depth / 2 + (i - 0.5) * b
-		wallColumn(m, origin, pal, d, 0, i, opts, b, depth)
-		wallColumn(m, origin, pal, 0, d, i, opts, depth, b)
-	end
+	wallSlab(m, origin, pal, (len + depth) / 2 - depth / 2, 0, len + depth, depth, opts)
+	wallSlab(m, origin, pal, 0, depth / 2 + len / 2, depth, len, opts)
 	return m
 end
 
@@ -395,13 +426,7 @@ function Kit.tree(parent, origin: CFrame, pal, opts)
 	-- root flare + trunk in 4-stud segments with alternating shade
 	block(m, origin, 0, 0, 0, V3(tw + 2, 1, tw + 2), shade(pal.Trunk, -0.06), "studs")
 	block(m, origin, 0, 1, 0, V3(tw + 1, 1, tw + 1), pal.Trunk, "studs")
-	local y, k = 2, 0
-	while y < H do
-		local h = math.min(4, H - y)
-		block(m, origin, 0, y, 0, V3(tw, h, tw), if k % 2 == 0 then pal.Trunk else shade(pal.Trunk, -0.07), "studs")
-		y += h
-		k += 1
-	end
+	block(m, origin, 0, 2, 0, V3(tw, H - 2, tw), pal.Trunk, "studs")
 
 	Kit.canopy(m, origin * CFrame.new(0, H - 1, 0), pal, rng, crown)
 
@@ -466,9 +491,7 @@ Palette.Base = {
 	Ground = rgb(196, 201, 76),
 
 	Grass = rgb(201, 207, 72),
-	GrassAlt = rgb(186, 194, 60),
 	Dirt = rgb(124, 100, 124),
-	DirtAlt = rgb(110, 88, 112),
 
 	Trunk = rgb(112, 92, 122),
 	Leaves = { rgb(201, 207, 72), rgb(186, 196, 60), rgb(214, 219, 98) },
@@ -480,9 +503,7 @@ Palette.Meadow = {
 	Ground = rgb(126, 204, 92),
 
 	Grass = rgb(110, 196, 74),
-	GrassAlt = rgb(98, 184, 66),
 	Dirt = rgb(144, 112, 118),
-	DirtAlt = rgb(128, 98, 106),
 
 	Trunk = rgb(110, 88, 114),
 	Leaves = { rgb(142, 212, 92), rgb(126, 200, 80), rgb(158, 220, 104) },

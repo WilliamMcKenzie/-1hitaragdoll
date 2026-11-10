@@ -27,9 +27,7 @@ Palette.Base = {
 	Ground = rgb(196, 201, 76),
 
 	Grass = rgb(201, 207, 72),
-	GrassAlt = rgb(186, 194, 60),
 	Dirt = rgb(124, 100, 124),
-	DirtAlt = rgb(110, 88, 112),
 
 	Trunk = rgb(112, 92, 122),
 	Leaves = { rgb(201, 207, 72), rgb(186, 196, 60), rgb(214, 219, 98) },
@@ -41,9 +39,7 @@ Palette.Meadow = {
 	Ground = rgb(126, 204, 92),
 
 	Grass = rgb(110, 196, 74),
-	GrassAlt = rgb(98, 184, 66),
 	Dirt = rgb(144, 112, 118),
-	DirtAlt = rgb(128, 98, 106),
 
 	Trunk = rgb(110, 88, 114),
 	Leaves = { rgb(142, 212, 92), rgb(126, 200, 80), rgb(158, 220, 104) },

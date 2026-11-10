@@ -7,10 +7,23 @@
       "Baseplate": {
         "$className": "Part",
         "$properties": {
-          "Color": { "Color3": [0.7686, 0.7882, 0.298] },
-          "Size": { "Vector3": [256, 16, 256] },
+          "Color": {
+            "Color3": [
+              0.7686,
+              0.7882,
+              0.298
+            ]
+          },
+          "Size": {
+            "Vector3": [
+              256,
+              16,
+              256
+            ]
+          },
           "Transparency": 0,
-          "CanCollide": true
+          "CanCollide": true,
+          "TopSurface": "Studs"
         }
       },
       "AssetShowcase": {
