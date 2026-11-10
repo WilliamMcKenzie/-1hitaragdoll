@@ -23,7 +23,7 @@
           },
           "Transparency": 0,
           "CanCollide": true,
-          "TopSurface": "Studs"
+          "TopSurface": "Smooth"
         }
       },
       "AssetShowcase": {

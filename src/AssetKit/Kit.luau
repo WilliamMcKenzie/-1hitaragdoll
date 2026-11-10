@@ -71,7 +71,7 @@ function Kit.ground(parent, origin: CFrame, pal, opts)
 	p.Size = V3(opts.sizeX or p.Size.X, thickness, opts.sizeZ or p.Size.Z)
 	p.CFrame = origin * CFrame.new(0, -thickness / 2, 0)
 	p.Color = opts.color or pal.Ground
-	p.TopSurface = Enum.SurfaceType.Studs
+	p.TopSurface = Enum.SurfaceType.Smooth -- the ground is the plain native baseplate: grid texture, no studs
 	p.Name = opts.name or (pal.Name .. "Baseplate")
 	p.Parent = parent
 	return p

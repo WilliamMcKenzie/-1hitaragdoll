@@ -12,12 +12,14 @@ AssetKit.Palette = require(script.Palette)
 AssetKit.Builder = require(script.Builder)
 AssetKit.Kit = require(script.Kit)
 AssetKit.Showcase = require(script.Showcase)
+AssetKit.Lighting = require(script.Lighting)
 AssetKit.Biomes = {
 	require(script.Biomes.Base),
 	require(script.Biomes.Meadow),
 }
 
 function AssetKit.buildShowcase()
+	AssetKit.Lighting.apply()
 	return AssetKit.Showcase.build(AssetKit.Biomes)
 end
 
