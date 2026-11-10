@@ -1,0 +1,11 @@
+{
+  "name": "plus-one-hit-a-ragdoll",
+  "tree": {
+    "$className": "DataModel",
+    "ServerStorage": {
+      "AssetKit": {
+        "$path": "src/AssetKit"
+      }
+    }
+  }
+}
