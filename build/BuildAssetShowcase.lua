@@ -142,7 +142,42 @@ function Builder.addGrid(p: BasePart)
 	end
 end
 
+-- Light-reactive studs: a MaterialVariant whose normal map (assets/studs, made
+-- by tools/make_stud_maps.py) gives bright rims in sun and flat studs in shadow.
+-- Decals can't react to light. Fill in the uploaded ids to switch every studded
+-- part over; until then the decal is used.
+Builder.StudMaterial = {
+	Name = "AssetKitStuds",
+	ColorMap = "", -- rbxassetid of assets/studs/stud_color.png
+	NormalMap = "", -- rbxassetid of assets/studs/stud_normal.png
+	StudsPerTile = 4,
+}
+
+local function studVariant(): string?
+	local m = Builder.StudMaterial
+	if m.ColorMap == "" or m.NormalMap == "" then
+		return nil
+	end
+	local ms = game:GetService("MaterialService")
+	if not ms:FindFirstChild(m.Name) then
+		local v = Instance.new("MaterialVariant")
+		v.Name = m.Name
+		v.BaseMaterial = Enum.Material.SmoothPlastic
+		v.ColorMap = m.ColorMap
+		v.NormalMap = m.NormalMap
+		v.StudsPerTile = m.StudsPerTile
+		v.Parent = ms
+	end
+	return m.Name
+end
+
 function Builder.addStuds(p: BasePart)
+	local variant = studVariant()
+	if variant then
+		p.Material = Enum.Material.SmoothPlastic
+		p.MaterialVariant = variant
+		return
+	end
 	local st = Builder.Studs
 	for _, face in NORMALS do
 		local t = Instance.new("Texture")
