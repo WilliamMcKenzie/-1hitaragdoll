@@ -38,6 +38,78 @@
       "AssetKitModels": {
         "$path": "rojo/AssetKitModels.model.json"
       }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Technology": "ShadowMap",
+        "Brightness": 1,
+        "ClockTime": 13,
+        "GeographicLatitude": 41.7,
+        "Ambient": {
+          "Color3": [
+            0.27450980392156865,
+            0.27450980392156865,
+            0.3137254901960784
+          ]
+        },
+        "OutdoorAmbient": {
+          "Color3": [
+            0.6313725490196078,
+            0.6392156862745098,
+            0.6392156862745098
+          ]
+        },
+        "ColorShift_Top": {
+          "Color3": [
+            0,
+            0,
+            0
+          ]
+        },
+        "ColorShift_Bottom": {
+          "Color3": [
+            0,
+            0,
+            0
+          ]
+        },
+        "GlobalShadows": true,
+        "ShadowSoftness": 0.2,
+        "EnvironmentDiffuseScale": 0.4,
+        "EnvironmentSpecularScale": 0,
+        "ExposureCompensation": 0.5,
+        "FogStart": 100000,
+        "FogEnd": 100000
+      },
+      "Sky": {
+        "$className": "Sky",
+        "$properties": {
+          "SkyboxBk": "rbxassetid://81588505365795",
+          "SkyboxDn": "rbxassetid://81588505365795",
+          "SkyboxFt": "rbxassetid://81588505365795",
+          "SkyboxLf": "rbxassetid://81588505365795",
+          "SkyboxRt": "rbxassetid://81588505365795",
+          "SkyboxUp": "rbxassetid://81588505365795",
+          "CelestialBodiesShown": false,
+          "StarCount": 0
+        }
+      },
+      "ColorCorrection": {
+        "$className": "ColorCorrectionEffect",
+        "$properties": {
+          "Contrast": 0.05,
+          "Saturation": 0.25,
+          "Brightness": 0,
+          "TintColor": {
+            "Color3": [
+              1,
+              1,
+              1
+            ]
+          }
+        }
+      }
     }
   }
 }

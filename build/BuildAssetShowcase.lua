@@ -480,24 +480,30 @@ local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
 end
 
+-- House style from QM's other games (ShadowMap, flat sky, exposure 0.5,
+-- contrast 0.05 / saturation 0.25), with shadows on because the reference has them.
 Lighting.Settings = {
 	Technology = Enum.Technology.ShadowMap,
-	Brightness = 2.5,
-	ClockTime = 14.5,
-	GeographicLatitude = 20,
-	Ambient = rgb(110, 110, 110),
-	OutdoorAmbient = rgb(150, 150, 150),
+	Brightness = 1,
+	ClockTime = 13,
+	GeographicLatitude = 41.7,
+	Ambient = rgb(70, 70, 80),
+	OutdoorAmbient = rgb(161, 163, 163),
 	ColorShift_Top = rgb(0, 0, 0),
 	ColorShift_Bottom = rgb(0, 0, 0),
 	GlobalShadows = true,
-	ShadowSoftness = 0.15,
-	EnvironmentDiffuseScale = 0,
-	EnvironmentSpecularScale = 0,
-	ExposureCompensation = 0,
+	ShadowSoftness = 0.2,
+	EnvironmentDiffuseScale = 0.4,
+	EnvironmentSpecularScale = 0, -- matte: no environment reflections
+	ExposureCompensation = 0.5,
+	FogStart = 100000,
 	FogEnd = 100000,
 }
 
-Lighting.ColorCorrection = { Brightness = 0, Contrast = 0.05, Saturation = 0.15, TintColor = rgb(255, 255, 255) }
+Lighting.ColorCorrection = { Brightness = 0, Contrast = 0.05, Saturation = 0.25, TintColor = rgb(255, 255, 255) }
+
+-- one flat sky colour, no sun, moon or stars
+Lighting.SkyTexture = "rbxassetid://81588505365795"
 
 local function child(className: string, name: string): Instance
 	local c = LightingService:FindFirstChildOfClass(className)
@@ -525,6 +531,12 @@ function Lighting.apply()
 			c.Glare = 0
 		end
 	end
+	local sky = child("Sky", "Sky") :: Sky
+	for _, face in { "SkyboxBk", "SkyboxDn", "SkyboxFt", "SkyboxLf", "SkyboxRt", "SkyboxUp" } do
+		(sky :: any)[face] = Lighting.SkyTexture
+	end
+	sky.CelestialBodiesShown = false
+	sky.StarCount = 0
 	local cc = child("ColorCorrectionEffect", "AssetKitColor") :: ColorCorrectionEffect
 	for k, v in Lighting.ColorCorrection do
 		(cc :: any)[k] = v
