@@ -152,9 +152,9 @@ function Builder.addStuds(p: BasePart)
 		t.StudsPerTileU = st.StudsPerTile
 		t.StudsPerTileV = st.StudsPerTile
 		t.Transparency = st.Transparency
-		-- the tile's white rim highlight is tinted to the block's own colour, so
-		-- only the dark L shadow shows; untinted it glows on dark blocks
-		t.Color3 = p.Color
+		-- white keeps the tile's rim highlight (QM wants it in sunlight; the
+		-- engine's lighting dims it in shadow). Transparency keeps it from glowing.
+		t.Color3 = Color3.new(1, 1, 1)
 		t.Parent = p
 	end
 end
