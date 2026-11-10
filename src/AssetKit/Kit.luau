@@ -120,6 +120,38 @@ function Kit.wallCorner(parent, origin: CFrame, pal, opts)
 end
 
 --------------------------------------------------------------------------------
+-- Cliff: one raised block of land, like the stepped plateaus in the reference.
+-- Dirt body with a darker band at the foot and a grass cap, bottom at local y = 0.
+-- opts: sizeX, sizeZ, height, cap, name
+--------------------------------------------------------------------------------
+function Kit.cliff(parent, origin: CFrame, pal, opts)
+	opts = opts or {}
+	local sx, sz = opts.sizeX or 24, opts.sizeZ or 24
+	local height = opts.height or 12
+	local cap = math.min(opts.cap or 4, height - 2)
+	local m = Builder.model(opts.name or "Cliff", parent, origin)
+	local foot = math.min(2, height - cap - 1)
+	if foot > 0 then
+		block(m, origin, 0, 0, 0, V3(sx, foot, sz), pal.Dirt, "studs")
+	end
+	block(m, origin, 0, math.max(foot, 0), 0, V3(sx, height - cap - math.max(foot, 0), sz), pal.Dirt, "studs")
+	block(m, origin, 0, height - cap, 0, V3(sx, cap, sz), pal.Grass, "studs")
+	return m
+end
+
+-- Low leafy bush sitting on the ground.
+function Kit.bush(parent, origin: CFrame, pal, opts)
+	opts = opts or {}
+	local m = Builder.model(opts.name or "Bush", parent, origin)
+	local rng = rngFor(opts)
+	local w = opts.width or 6
+	local c = Builder.pick(pal.Leaves, rng)
+	block(m, origin, 0, 0, 0, V3(w, 3, w), c, "studs")
+	block(m, origin, (rng:NextNumber() - 0.5) * 2, 3, (rng:NextNumber() - 0.5) * 2, V3(math.max(2, w - 2) + 0.02, 2, math.max(2, w - 2) + 0.02), c, "studs")
+	return m
+end
+
+--------------------------------------------------------------------------------
 -- Leaf cluster: stacked, offset studded boxes. Bottom of the cluster at local y=0.
 --------------------------------------------------------------------------------
 function Kit.canopy(m, origin: CFrame, pal, rng: Random, width: number)
@@ -135,18 +167,17 @@ function Kit.canopy(m, origin: CFrame, pal, rng: Random, width: number)
 		{ w = width * 0.78, h = 4, y = 3 },
 		{ w = width * 0.5, h = 3, y = 6 },
 	}
-	-- darker underside
-	leaf(0, -1, 0, width * 0.62, 2, width * 0.62, shade(pal.Leaves[1], -0.14))
+	-- one flat colour per clump (no shade variation)
+	local c = Builder.pick(pal.Leaves, rng)
+	leaf(0, -1, 0, width * 0.62, 2, width * 0.62, c)
 	for _, L in layers do
-		local c = Builder.jitter(Builder.pick(pal.Leaves, rng), rng, 0.04)
 		local lz = L.w * (0.8 + 0.3 * rng:NextNumber())
 		leaf((rng:NextNumber() - 0.5) * 2, L.y, (rng:NextNumber() - 0.5) * 2, L.w, L.h, lz, c)
 		for _ = 1, rng:NextInteger(2, 3) do
 			local ox = (rng:NextNumber() - 0.5) * L.w * 0.9
 			local oz = (rng:NextNumber() - 0.5) * L.w * 0.9
 			local lw = L.w * (0.4 + 0.2 * rng:NextNumber())
-			local lc = Builder.jitter(Builder.pick(pal.Leaves, rng), rng, 0.05)
-			leaf(ox, L.y + rng:NextInteger(-1, 1), oz, lw, L.h, lw, lc)
+			leaf(ox, L.y + rng:NextInteger(-1, 1), oz, lw, L.h, lw, c)
 		end
 	end
 end
@@ -166,7 +197,7 @@ function Kit.tree(parent, origin: CFrame, pal, opts)
 	local m = Builder.model(opts.name or "Tree", parent, origin)
 
 	-- root flare + trunk in 4-stud segments with alternating shade
-	block(m, origin, 0, 0, 0, V3(tw + 2, 1, tw + 2), shade(pal.Trunk, -0.06), "studs")
+	block(m, origin, 0, 0, 0, V3(tw + 2, 1, tw + 2), pal.Trunk, "studs")
 	block(m, origin, 0, 1, 0, V3(tw + 1, 1, tw + 1), pal.Trunk, "studs")
 	block(m, origin, 0, 2, 0, V3(tw, H - 2, tw), pal.Trunk, "studs")
 

@@ -88,10 +88,8 @@ function Builder.applyStyle(p: BasePart, style: Style?)
 	if style == "inlet" then
 		p.TopSurface = Enum.SurfaceType.Inlet
 	end
-	if style == "studs" then
-		-- the native baseplate grid gives the checkerboard; studs sit on top of it
-		Builder.addGrid(p)
-	end
+	-- obstacles are flat colour with studs only (QM): no grid texture, no checker.
+	-- Builder.addGrid is kept for anything that explicitly wants the baseplate grid.
 end
 
 export type PartOpts = {

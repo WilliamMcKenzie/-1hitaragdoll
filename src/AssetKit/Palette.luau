@@ -30,7 +30,10 @@ Palette.Base = {
 	Dirt = rgb(124, 100, 124),
 
 	Trunk = rgb(112, 92, 122),
-	Leaves = { rgb(201, 207, 72), rgb(186, 196, 60), rgb(214, 219, 98) },
+	Leaves = { rgb(201, 207, 72), rgb(186, 196, 60), rgb(214, 219, 98), rgb(142, 212, 92) },
+
+	Path = rgb(236, 196, 84),
+	PathTrim = rgb(214, 206, 232),
 }
 
 -- Biome 1, Meadow: bright green grass, mauve-brown dirt cliffs, purple trunks.
@@ -43,6 +46,9 @@ Palette.Meadow = {
 
 	Trunk = rgb(110, 88, 114),
 	Leaves = { rgb(142, 212, 92), rgb(126, 200, 80), rgb(158, 220, 104) },
+
+	Path = rgb(236, 196, 84),
+	PathTrim = rgb(214, 206, 232),
 }
 
 return Palette

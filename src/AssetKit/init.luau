@@ -13,6 +13,7 @@ AssetKit.Builder = require(script.Builder)
 AssetKit.Kit = require(script.Kit)
 AssetKit.Showcase = require(script.Showcase)
 AssetKit.Lighting = require(script.Lighting)
+AssetKit.Scene = require(script.Scene)
 AssetKit.Biomes = {
 	require(script.Biomes.Base),
 	require(script.Biomes.Meadow),

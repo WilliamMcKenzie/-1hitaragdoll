@@ -19,6 +19,23 @@ Vector3.__mul = function(a, b)
 end
 Vector3.__div = function(a, b) return v3(a.X / b, a.Y / b, a.Z / b) end
 
+local Vector2 = {}
+local function v2(x, y)
+	return setmetatable({ X = x or 0, Y = y or 0 }, Vector2)
+end
+Vector2.__index = function(t, k)
+	if k == "Magnitude" then return math.sqrt(t.X * t.X + t.Y * t.Y) end
+	return Vector2[k]
+end
+Vector2.new = v2
+Vector2.__add = function(a, b) return v2(a.X + b.X, a.Y + b.Y) end
+Vector2.__sub = function(a, b) return v2(a.X - b.X, a.Y - b.Y) end
+Vector2.__mul = function(a, b)
+	if type(a) == "number" then return v2(b.X * a, b.Y * a) end
+	if type(b) == "number" then return v2(a.X * b, a.Y * b) end
+	return v2(a.X * b.X, a.Y * b.Y)
+end
+
 local CFrame = {}
 CFrame.__index = function(t, k)
 	if k == "Position" then return v3(t.p[1], t.p[2], t.p[3]) end

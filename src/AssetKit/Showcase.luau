@@ -12,12 +12,14 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local Builder = require(script.Parent.Builder)
 local Kit = require(script.Parent.Kit)
+local Scene = require(script.Parent.Scene)
 
 local Showcase = {}
 
 Showcase.PlateSize = 256
 Showcase.Margin = 24
 Showcase.Spacing = 12
+Showcase.SceneGap = 64
 
 local function labelAnchor(parent: Instance, model: Model, text: string)
 	local cf, size = model:GetBoundingBox()
@@ -119,6 +121,10 @@ function Showcase.build(biomes)
 		Kit.ground(storeFolder, CFrame.new(), biome.palette, { source = source, name = "Baseplate" })
 
 		layoutBiome(biome, center, biomeFolder, storeFolder, labels)
+
+		-- a finished-looking area built only from this biome's kit, east of the showcase
+		local sceneCenter = CFrame.new(Showcase.PlateSize + Showcase.SceneGap, 0, -(index - 1) * (Showcase.PlateSize + Showcase.SceneGap))
+		Scene.build(biomeFolder, sceneCenter, biome.palette, { source = source, size = Showcase.PlateSize, seed = index * 11 })
 	end
 
 	root.Parent = Workspace
