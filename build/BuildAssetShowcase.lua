@@ -489,10 +489,12 @@ end
 local function blob(m, origin: CFrame, c: Color3, size: number, idx: number)
 	local w = math.max(4, math.floor(size / 2) * 2)
 	local step = if w >= 10 then 4 else 2
-	local e = idx * 0.03 -- keeps coplanar faces of neighbouring blobs from z-fighting
+	local e = idx * 0.07 -- keeps coplanar faces of neighbouring blobs from z-fighting
+	-- only the first box casts shadows, so the crossed boxes don't streak each other;
+	-- 0.08-stud gaps between coplanar faces keep them from shimmering at distance
 	Builder.box(m, origin, V3(0, 0, 0), V3(w + e, w - step + e, w - step + e), c, "studs")
-	Builder.box(m, origin, V3(0, 0, 0), V3(w - step + e + 0.01, w + e, w - step + e + 0.01), c, "studs")
-	Builder.box(m, origin, V3(0, 0, 0), V3(w - step + e + 0.02, w - step + e + 0.02, w + e), c, "studs")
+	Builder.box(m, origin, V3(0, 0, 0), V3(w - step + e + 0.08, w + e, w - step + e + 0.08), c, "studs", { castShadow = false })
+	Builder.box(m, origin, V3(0, 0, 0), V3(w - step + e + 0.16, w - step + e + 0.16, w + e), c, "studs", { castShadow = false })
 end
 
 local function clump(m, origin: CFrame, c: Color3, rng: Random, w: number, idx: number)
@@ -556,7 +558,9 @@ function Kit.tree(parent, origin: CFrame, pal, opts)
 		local start = V3(0, hb, 0) + d * (tw / 2 - bw / 2)
 		local mid = limb(m, origin, start, yaw, math.rad(50 + rng:NextNumber() * 12), math.max(5, crown * 0.32), bw, pal.Trunk)
 		local tip = limb(m, origin, mid, yaw, math.rad(12 + rng:NextNumber() * 12), 3 + rng:NextInteger(0, 1), bw, pal.Trunk)
-		clump(m, origin * CFrame.new(tip.X, tip.Y - 3, tip.Z), leaf, rng, math.max(6, math.floor(crown * 0.32)), 20 + b)
+		local cw = math.max(6, math.floor(crown * 0.32))
+		-- keep a good length of bare trunk below the lowest leaves
+		clump(m, origin * CFrame.new(tip.X, math.max(tip.Y - 3, H * 0.42), tip.Z), leaf, rng, cw, 20 + b)
 	end
 	return m
 end
