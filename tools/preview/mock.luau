@@ -99,8 +99,8 @@ local Enum = setmetatable({}, {
 })
 
 local UDim2 = {
-	fromOffset = function(x, y) return { x, y } end,
-	fromScale = function(x, y) return { x, y } end,
+	fromOffset = function(x, y) return { __udim2 = { 0, x, 0, y } } end,
+	fromScale = function(x, y) return { __udim2 = { x, 0, y, 0 } } end,
 }
 
 -- Instances -------------------------------------------------------------------
@@ -252,6 +252,9 @@ do
 	t.StudsPerTileU = 8
 	t.StudsPerTileV = 8
 	t.Transparency = 0.8
+	t.Texture = "rbxassetid://6372755229"
+	t.Face = "NormalId.Top"
+	t.Color3 = Color3.new(0, 0, 0)
 	t.Parent = bp
 	bp.Parent = workspace
 	local sp = Instance.new("SpawnLocation")

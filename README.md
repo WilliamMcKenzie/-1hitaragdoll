@@ -20,16 +20,24 @@ plus an asset list.
 
 ### See it in Studio
 
-1. Open any Baseplate place.
-2. Open View > Command Bar, paste all of `build/BuildAssetShowcase.lua`, press Enter.
-3. Press Play. You spawn on the Base plate; the Meadow plate is next to it to the north.
+Rojo (live sync):
 
-The showcase lands in `Workspace.AssetShowcase` with a label over each asset, and a
-clean template of every asset goes to `ServerStorage.AssetKitModels/<Biome>`.
-Running it again replaces both. Ctrl+Z undoes it.
+1. Open a fresh Baseplate place in Studio.
+2. In the repo run `rojo serve`, then press Connect in the Rojo plugin.
 
-With Rojo, `default.project.json` syncs the kit to `ServerStorage.AssetKit`; then
-`require(game.ServerStorage.AssetKit).buildShowcase()` in the command bar does the same.
+`default.project.json` recolours the place's own `Workspace.Baseplate` for the
+Base biome and syncs `Workspace.AssetShowcase` plus `ServerStorage.AssetKit` /
+`ServerStorage.AssetKitModels`. Anything else in the place is left alone.
+
+No Rojo: open `build/AssetShowcase.rbxl` (built from `place.project.json`), or
+paste `build/BuildAssetShowcase.lua` into the command bar of a Baseplate place.
+
+After changing `src/AssetKit`, regenerate the synced models and place file:
+
+```
+python3 tools/rojo/export.py      # needs the luau CLI; writes rojo/*.model.json
+rojo build place.project.json -o build/AssetShowcase.rbxl
+```
 
 ### Rebuild the paste script / preview offline
 

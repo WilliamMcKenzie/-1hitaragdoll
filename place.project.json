@@ -1,0 +1,136 @@
+{
+  "name": "plus-one-hit-a-ragdoll",
+  "tree": {
+    "$className": "DataModel",
+    "Workspace": {
+      "$className": "Workspace",
+      "Baseplate": {
+        "$className": "Part",
+        "$properties": {
+          "Color": {
+            "Color3": [
+              0.7686,
+              0.7882,
+              0.298
+            ]
+          },
+          "Size": {
+            "Vector3": [
+              256,
+              16,
+              256
+            ]
+          },
+          "Transparency": 0,
+          "CanCollide": true,
+          "Anchored": true,
+          "Locked": true,
+          "Material": "Plastic",
+          "TopSurface": "Smooth",
+          "BottomSurface": "Smooth",
+          "CFrame": {
+            "CFrame": {
+              "position": [
+                0,
+                -8,
+                0
+              ],
+              "orientation": [
+                [
+                  1,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ]
+            }
+          }
+        },
+        "Texture": {
+          "$className": "Texture",
+          "$properties": {
+            "Texture": "rbxassetid://6372755229",
+            "Face": "Top",
+            "StudsPerTileU": 8,
+            "StudsPerTileV": 8,
+            "Transparency": 0.8,
+            "Color3": {
+              "Color3": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        }
+      },
+      "AssetShowcase": {
+        "$path": "rojo/AssetShowcase.model.json"
+      },
+      "SpawnLocation": {
+        "$className": "SpawnLocation",
+        "$properties": {
+          "Anchored": true,
+          "Size": {
+            "Vector3": [
+              12,
+              1,
+              12
+            ]
+          },
+          "CFrame": {
+            "CFrame": {
+              "position": [
+                0,
+                0.5,
+                0
+              ],
+              "orientation": [
+                [
+                  1,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ]
+            }
+          },
+          "Neutral": true
+        }
+      }
+    },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "AssetKit": {
+        "$path": "src/AssetKit"
+      },
+      "AssetKitModels": {
+        "$path": "rojo/AssetKitModels.model.json"
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "ClockTime": 14
+      }
+    }
+  }
+}
