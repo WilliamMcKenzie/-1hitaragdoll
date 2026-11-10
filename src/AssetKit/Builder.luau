@@ -38,7 +38,7 @@ Builder.Studs = {
 	Texture = "rbxassetid://100359261064701",
 	StudsPerTile = 4,
 	-- softens the L shadow so it reads like the reference instead of popping
-	Transparency = 0.25,
+	Transparency = 0.35,
 }
 
 local NORMALS = { Enum.NormalId.Top, Enum.NormalId.Bottom, Enum.NormalId.Left, Enum.NormalId.Right, Enum.NormalId.Front, Enum.NormalId.Back }
