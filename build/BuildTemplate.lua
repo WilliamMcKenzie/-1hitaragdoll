@@ -33,6 +33,8 @@ UI.TextOutline = Color3.fromRGB(26, 16, 48)
 -- Roblox draws FredokaOne about 20% smaller than Figma at the same size, so
 -- every Figma text size is multiplied by this (measured against docs/figma)
 UI.TextScale = 1.2
+-- level bar width: 96px tall at 8:1 (QM); the buy buttons split the same width
+UI.BarWidth = 768
 
 -- Uploaded from the Figma file (rbxassetid). Empty = not uploaded yet.
 UI.Assets = {
@@ -299,7 +301,7 @@ function UI.counter(opts)
 	return finish(f, opts)
 end
 
---[[ Level progress (Figma Progress, 576 wide): skill row on top, bar below.
+--[[ Level progress (Figma Progress; QM widened it to 768 so the bar is 8:1): skill row on top, bar below.
 	opts: Name, Skill, Multiplier, Level, Value, Fill (0..1), Parent.
 	Children to update: SkillRow.SkillLabel, SkillRow.Multi, Bar.Level, Bar.Value,
 	Bar.Fill (Size.X.Scale = progress). ]]
@@ -307,7 +309,7 @@ function UI.progress(opts)
 	local f = new("Frame", {
 		Name = opts.Name or "Progress",
 		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(576, 155),
+		Size = UDim2.fromOffset(opts.Width or UI.BarWidth, 155),
 	})
 	local row = new("Frame", { Name = "SkillRow", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 48), Parent = f })
 	UI.image(UI.Assets.Skill, { Parent = row, Size = UDim2.fromOffset(48, 48) })
@@ -366,11 +368,11 @@ function UI.progress(opts)
 	return finish(f, opts)
 end
 
---[[ Buy button (Figma BuyProgress, 181x96): arm icon popping out the top, big label.
+--[[ Buy button (Figma BuyProgress, 181x74): arm icon popping out the top, big label.
 	opts: Name, Text, Color, Shade, Price, Width, Parent ]]
 function UI.buyButton(opts)
-	local w = opts.Width or 181.33
-	local b = button(opts.Name or "BuyButton", w, 96, {
+	local w = opts.Width or (UI.BarWidth - 2 * 16) / 3
+	local b = button(opts.Name or "BuyButton", w, 74, {
 		Color = opts.Color or UI.Colors.Yellow,
 		Shade = opts.Shade or UI.Colors.ShadeRed,
 		ShadeFrom = 0,
@@ -379,18 +381,20 @@ function UI.buyButton(opts)
 	})
 	UI.image(UI.Assets.Muscle, {
 		Parent = b,
-		Size = UDim2.fromOffset(96, 96),
+		-- 66px arm, 10px above the top edge
+		Size = UDim2.fromOffset(66, 66),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, -15),
+		Position = UDim2.new(0.5, 0, 0, -10),
 	})
 	UI.text({
 		Name = "Label",
 		Parent = b,
 		Text = opts.Text or "+10M",
-		TextSize = 48,
+		TextSize = 36,
+		-- label hangs 13px below the bottom edge, as in Figma
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 38),
-		Size = UDim2.new(1, 0, 0, 58),
+		Position = UDim2.new(0.5, 0, 0, 43),
+		Size = UDim2.new(1, 0, 0, 44),
 	})
 	if opts.Price then
 		UI.text({
@@ -574,10 +578,10 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, 28, 1, -28),
-		Size = UDim2.fromOffset(284, 61 * 2 + 26),
+		Size = UDim2.fromOffset(284, 61 * 2),
 		Parent = gui,
 	})
-	new("UIListLayout", { Padding = UDim.new(0, 26), SortOrder = Enum.SortOrder.LayoutOrder, Parent = counters })
+	new("UIListLayout", { Padding = UDim.new(0, 0), SortOrder = Enum.SortOrder.LayoutOrder, Parent = counters })
 	UI.counter({ Name = "Rebirths", Icon = A.Rebirth, Text = "2", TextColor = C.Ice, LayoutOrder = 1, Parent = counters })
 	UI.counter({ Name = "Wins", Icon = A.Trophy, Text = "5K", TextColor = C.Gold, LayoutOrder = 2, Parent = counters })
 
@@ -586,8 +590,8 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		Name = "Bottom",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -24),
-		Size = UDim2.fromOffset(577, 155 + 22 + 96),
+		Position = UDim2.new(0.5, 0, 1, -36), -- leaves room for the labels hanging below the buy buttons
+		Size = UDim2.fromOffset(UI.BarWidth, 155 + 12 + 74),
 		Parent = gui,
 	})
 	UI.progress({ Name = "Progress", Skill = "1.2M", Multiplier = "7x", Level = 80, Value = "1.2k/3.05k", Fill = 0.39, Parent = bottom })
@@ -596,7 +600,7 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromScale(0, 1),
-		Size = UDim2.new(1, 0, 0, 96),
+		Size = UDim2.new(1, 0, 0, 74),
 		Parent = bottom,
 	})
 	new("UIListLayout", {
@@ -1280,6 +1284,8 @@ UI.TextOutline = Color3.fromRGB(26, 16, 48)
 -- Roblox draws FredokaOne about 20% smaller than Figma at the same size, so
 -- every Figma text size is multiplied by this (measured against docs/figma)
 UI.TextScale = 1.2
+-- level bar width: 96px tall at 8:1 (QM); the buy buttons split the same width
+UI.BarWidth = 768
 
 -- Uploaded from the Figma file (rbxassetid). Empty = not uploaded yet.
 UI.Assets = {
@@ -1546,7 +1552,7 @@ function UI.counter(opts)
 	return finish(f, opts)
 end
 
---[[ Level progress (Figma Progress, 576 wide): skill row on top, bar below.
+--[[ Level progress (Figma Progress; QM widened it to 768 so the bar is 8:1): skill row on top, bar below.
 	opts: Name, Skill, Multiplier, Level, Value, Fill (0..1), Parent.
 	Children to update: SkillRow.SkillLabel, SkillRow.Multi, Bar.Level, Bar.Value,
 	Bar.Fill (Size.X.Scale = progress). ]]
@@ -1554,7 +1560,7 @@ function UI.progress(opts)
 	local f = new("Frame", {
 		Name = opts.Name or "Progress",
 		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(576, 155),
+		Size = UDim2.fromOffset(opts.Width or UI.BarWidth, 155),
 	})
 	local row = new("Frame", { Name = "SkillRow", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 48), Parent = f })
 	UI.image(UI.Assets.Skill, { Parent = row, Size = UDim2.fromOffset(48, 48) })
@@ -1613,11 +1619,11 @@ function UI.progress(opts)
 	return finish(f, opts)
 end
 
---[[ Buy button (Figma BuyProgress, 181x96): arm icon popping out the top, big label.
+--[[ Buy button (Figma BuyProgress, 181x74): arm icon popping out the top, big label.
 	opts: Name, Text, Color, Shade, Price, Width, Parent ]]
 function UI.buyButton(opts)
-	local w = opts.Width or 181.33
-	local b = button(opts.Name or "BuyButton", w, 96, {
+	local w = opts.Width or (UI.BarWidth - 2 * 16) / 3
+	local b = button(opts.Name or "BuyButton", w, 74, {
 		Color = opts.Color or UI.Colors.Yellow,
 		Shade = opts.Shade or UI.Colors.ShadeRed,
 		ShadeFrom = 0,
@@ -1626,18 +1632,20 @@ function UI.buyButton(opts)
 	})
 	UI.image(UI.Assets.Muscle, {
 		Parent = b,
-		Size = UDim2.fromOffset(96, 96),
+		-- 66px arm, 10px above the top edge
+		Size = UDim2.fromOffset(66, 66),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, -15),
+		Position = UDim2.new(0.5, 0, 0, -10),
 	})
 	UI.text({
 		Name = "Label",
 		Parent = b,
 		Text = opts.Text or "+10M",
-		TextSize = 48,
+		TextSize = 36,
+		-- label hangs 13px below the bottom edge, as in Figma
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 38),
-		Size = UDim2.new(1, 0, 0, 58),
+		Position = UDim2.new(0.5, 0, 0, 43),
+		Size = UDim2.new(1, 0, 0, 44),
 	})
 	if opts.Price then
 		UI.text({
@@ -1821,10 +1829,10 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, 28, 1, -28),
-		Size = UDim2.fromOffset(284, 61 * 2 + 26),
+		Size = UDim2.fromOffset(284, 61 * 2),
 		Parent = gui,
 	})
-	new("UIListLayout", { Padding = UDim.new(0, 26), SortOrder = Enum.SortOrder.LayoutOrder, Parent = counters })
+	new("UIListLayout", { Padding = UDim.new(0, 0), SortOrder = Enum.SortOrder.LayoutOrder, Parent = counters })
 	UI.counter({ Name = "Rebirths", Icon = A.Rebirth, Text = "2", TextColor = C.Ice, LayoutOrder = 1, Parent = counters })
 	UI.counter({ Name = "Wins", Icon = A.Trophy, Text = "5K", TextColor = C.Gold, LayoutOrder = 2, Parent = counters })
 
@@ -1833,8 +1841,8 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		Name = "Bottom",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -24),
-		Size = UDim2.fromOffset(577, 155 + 22 + 96),
+		Position = UDim2.new(0.5, 0, 1, -36), -- leaves room for the labels hanging below the buy buttons
+		Size = UDim2.fromOffset(UI.BarWidth, 155 + 12 + 74),
 		Parent = gui,
 	})
 	UI.progress({ Name = "Progress", Skill = "1.2M", Multiplier = "7x", Level = 80, Value = "1.2k/3.05k", Fill = 0.39, Parent = bottom })
@@ -1843,7 +1851,7 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromScale(0, 1),
-		Size = UDim2.new(1, 0, 0, 96),
+		Size = UDim2.new(1, 0, 0, 74),
 		Parent = bottom,
 	})
 	new("UIListLayout", {
