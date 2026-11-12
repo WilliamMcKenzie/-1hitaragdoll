@@ -22,9 +22,11 @@ Colors.Map = {
 	Dirt = hue(22, 0.55),
 	Grass = hue(100, 0.8),
 	HitZone = hue(50, 1),
-	Chevron = hue(50, 1),
 	Line = Color3.new(1, 1, 1), -- the glowing edge of the hit zone
 }
+
+-- flower heads scattered on the lane edges
+Colors.Flowers = { hue(0, 1), hue(50, 1), hue(300, 1), hue(200, 1) }
 
 -- One entry per biome, in the order they run out from the hit zone.
 Colors.Biomes = {

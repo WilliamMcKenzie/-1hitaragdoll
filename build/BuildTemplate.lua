@@ -1245,9 +1245,11 @@ Colors.Map = {
 	Dirt = hue(22, 0.55),
 	Grass = hue(100, 0.8),
 	HitZone = hue(50, 1),
-	Chevron = hue(50, 1),
 	Line = Color3.new(1, 1, 1), -- the glowing edge of the hit zone
 }
+
+-- flower heads scattered on the lane edges
+Colors.Flowers = { hue(0, 1), hue(50, 1), hue(300, 1), hue(200, 1) }
 
 -- One entry per biome, in the order they run out from the hit zone.
 Colors.Biomes = {
@@ -1284,8 +1286,9 @@ __modules["Map"] = function()
 	    thin yellow strip with big "HIT ZONE" text. Past the strip the ground
 	    steps down a few studs (Settings.Drop).
 	  - The biomes run out one after another along +X, each Settings.BiomeLength
-	    long, between stepped dirt walls: a low ledge with trees on it, then a
-	    tall wall behind (QM's reference, 2026-11-12).
+	    long, between terraced dirt walls (Settings.Terraces): blocky steps with
+	    grass lips and trees on every step, then a tall back wall; bushes and
+	    flowers line the lane edges (QM's reference, 2026-11-12).
 
 	Map.build() makes Workspace.Map. Gameplay code can read:
 	  Map.HitZone (part, attribute HitZone = true)
@@ -1315,10 +1318,20 @@ Map.Settings = {
 	LineWidth = 1.5, -- glowing line just before the strip, on the spawn side
 	Drop = 4, -- small step from the hit zone down to the biomes (QM: barely any)
 	LaneWidth = 120, -- = GapWidth
-	LedgeWidth = 18, -- biome walls: low ledge with trees ...
-	LedgeHeight = 10,
-	OuterWallHeight = 34, -- ... then the tall wall behind it (above the lane)
-	LedgeTrees = 9, -- per side per biome
+	-- biome walls: terraces stepping up and away from the lane (QM's reference),
+	-- each cut into segments whose height jitters a little for a blocky skyline,
+	-- trees on every step, then a tall back wall
+	Terraces = {
+		{ Width = 16, Height = 8, Trees = 9 },
+		{ Width = 16, Height = 18, Trees = 7 },
+		{ Width = 16, Height = 30, Trees = 6 },
+	},
+	BackWallHeight = 44,
+	TerraceSegment = 50,
+	TerraceJitter = 3,
+	GrassOverhang = 1, -- grass caps lip out over the step below
+	Bushes = 26, -- per biome, along the lane edges
+	Flowers = 40, -- per biome, tiny two-block flowers on the lane edges
 	BiomeLength = 500,
 	TreesPerBiome = 26,
 	ClearPath = 20, -- no trees within this many studs of the centre line
@@ -1337,11 +1350,36 @@ local function slab(parent: Instance, name: string, a: Vector3, b: Vector3, colo
 end
 
 -- Dirt wall with a grass cap, both in the terrain style (native grid + studs).
-local function wall(parent: Instance, name: string, x0, z0, x1, z1, yBottom: number, yTop: number, pal)
+-- lip: the cap sticks out this far past z0 (negative) or z1 (positive)
+local function wall(parent: Instance, name: string, x0, z0, x1, z1, yBottom: number, yTop: number, pal, lip: number?)
 	local cap = Map.Settings.GrassCap
 	local m = Builder.model(name, parent)
 	slab(m, "Dirt", V3(x0, yBottom, z0), V3(x1, yTop - cap, z1), pal.Dirt, "terrain")
-	slab(m, "Grass", V3(x0, yTop - cap, z0), V3(x1, yTop, z1), pal.Grass, "terrain")
+	local gz0, gz1 = z0, z1
+	if lip and lip < 0 then
+		gz0 += lip
+	elseif lip and lip > 0 then
+		gz1 += lip
+	end
+	slab(m, "Grass", V3(x0, yTop - cap, gz0), V3(x1, yTop, gz1), pal.Grass, "terrain")
+	return m
+end
+
+-- KISS bush: a big leaf block with a smaller one on top
+local function bush(parent: Instance, at: Vector3, w: number, color: Color3, rot: number)
+	local m = Builder.model("Bush", parent)
+	local cf = CFrame.new(at) * CFrame.Angles(0, rot, 0)
+	local h = w * 0.55
+	Builder.part(m, V3(w, h, w * 0.8), cf * CFrame.new(0, h / 2, 0), color, "studs", { name = "Big" })
+	Builder.part(m, V3(w * 0.65, h * 0.5, w * 0.55), cf * CFrame.new(0, h * 1.25, 0), color, "studs", { name = "Top" })
+	return m
+end
+
+-- KISS flower: one stem block, one head block
+local function flower(parent: Instance, at: Vector3, stem: Color3, head: Color3)
+	local m = Builder.model("Flower", parent)
+	Builder.part(m, V3(0.4, 1.6, 0.4), CFrame.new(at + V3(0, 0.8, 0)), stem, "smooth", { name = "Stem", canCollide = false })
+	Builder.part(m, V3(1.2, 0.8, 1.2), CFrame.new(at + V3(0, 1.9, 0)), head, "studs", { name = "Head", canCollide = false })
 	return m
 end
 
@@ -1470,7 +1508,12 @@ function Map.build(parent: Instance?)
 
 	local D, L, H, t = S.SpawnDepth, S.SpawnLength, S.WallHeight, S.WallThickness
 	local G, HZ, Drop, W = S.GapWidth, S.HitZoneDepth, S.Drop, S.LaneWidth
-	local edgeZ = math.max(L / 2 + t, W / 2 + S.LedgeWidth + t) -- outer Z of the spawn and cliff
+	local terraceWidth = 0
+	for _, tr in S.Terraces do
+		terraceWidth += tr.Width
+	end
+	local outerZ = W / 2 + terraceWidth + t -- outer Z of the biome walls
+	local edgeZ = math.max(L / 2 + t, outerZ) -- outer Z of the spawn and cliff
 
 	----------------------------------------------------------------- spawn
 	local spawnM = Builder.model("Spawn", root)
@@ -1538,43 +1581,80 @@ function Map.build(parent: Instance?)
 		local bx0 = laneStart + (i - 1) * S.BiomeLength
 		local bx1 = bx0 + S.BiomeLength
 		local bm = Builder.model(name, biomesM)
-		local g = ground(bm, "Ground", bx0, -W / 2 - S.LedgeWidth - t, bx1, W / 2 + S.LedgeWidth + t, -Drop, pal.Ground)
+		local g = ground(bm, "Ground", bx0, -outerZ, bx1, outerZ, -Drop, pal.Ground)
 		g:SetAttribute("Biome", name)
 		g:SetAttribute("StartX", bx0)
 		g:SetAttribute("EndX", bx1)
 		local wp = { Dirt = pal.Dirt, Grass = pal.Grass }
-		-- stepped walls: a low ledge (trees on it), then the tall wall behind
-		local Lw, Lh, Oh = S.LedgeWidth, S.LedgeHeight, S.OuterWallHeight
-		local ledgeTop = -Drop + Lh
-		wall(bm, "LedgeLeft", bx0, -W / 2 - Lw, bx1, -W / 2, -Drop, ledgeTop, wp)
-		wall(bm, "LedgeRight", bx0, W / 2, bx1, W / 2 + Lw, -Drop, ledgeTop, wp)
-		wall(bm, "WallLeft", bx0, -W / 2 - Lw - t, bx1, -W / 2 - Lw, -Drop, -Drop + Oh, wp)
-		wall(bm, "WallRight", bx0, W / 2 + Lw, bx1, W / 2 + Lw + t, -Drop, -Drop + Oh, wp)
-		sign(bm, name, V3(bx0 + 70, -Drop + 46, 0), pal.Sign)
-		-- trees down both sides, leaving the centre clear for the ragdoll
-		local decor = Builder.model("Trees", bm)
 		local rng = Random.new(1000 + i)
+		local decor = Builder.model("Trees", bm)
+		local walls = Builder.model("Terraces", bm)
+		sign(bm, name, V3(bx0 + 70, -Drop + 46, 0), pal.Sign)
+
+		-- terraces: segments with jittered heights, trees on top of each
+		for _, side in { -1, 1 } do
+			local zIn = W / 2
+			for ti, tr in S.Terraces do
+				local zOut = zIn + tr.Width
+				local x = bx0
+				local seg = 0
+				while x < bx1 - 0.01 do
+					seg += 1
+					local len = math.min(S.TerraceSegment + rng:NextInteger(-12, 12), bx1 - x)
+					local top = -Drop + tr.Height + rng:NextInteger(-S.TerraceJitter, S.TerraceJitter)
+					local a0, a1 = side * zIn, side * zOut
+					wall(walls, ("T%d_%s_%d"):format(ti, if side < 0 then "L" else "R", seg),
+						x, math.min(a0, a1), x + len, math.max(a0, a1), -Drop, top, wp,
+						-side * S.GrassOverhang)
+					x += len
+				end
+				for k = 1, tr.Trees do
+					local tx = bx0 + (k - 0.5) * S.BiomeLength / tr.Trees + rng:NextNumber(-12, 12)
+					local tz = side * (zIn + tr.Width / 2 + rng:NextNumber(-2, 2))
+					-- stand it on whichever segment is under it
+					local hit = workspace:Raycast(V3(tx, 200, tz), V3(0, -400, 0), (function()
+						local rp = RaycastParams.new()
+						rp.FilterType = Enum.RaycastFilterType.Include
+						rp.FilterDescendantsInstances = { walls }
+						return rp
+					end)())
+					local ty = if hit then hit.Position.Y else -Drop + tr.Height
+					local cf = CFrame.new(tx, ty, tz) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
+					Trees.build(name, decor, cf, pal, rng)
+				end
+				zIn = zOut
+			end
+			local zb = W / 2 + terraceWidth
+			wall(walls, "Back" .. (if side < 0 then "L" else "R"), bx0, math.min(side * zb, side * outerZ), bx1,
+				math.max(side * zb, side * outerZ), -Drop, -Drop + S.BackWallHeight, wp)
+		end
+
+		-- lane floor: trees near the walls, the centre clear for the ragdoll
 		local n = S.TreesPerBiome
 		for k = 1, n do
 			local x = bx0 + 14 + (k - 0.5) * (S.BiomeLength - 28) / n + rng:NextNumber(-6, 6)
 			local side = if k % 2 == 0 then 1 else -1
-			local z = side * rng:NextNumber(S.ClearPath, W / 2 - 12)
+			local z = side * rng:NextNumber(S.ClearPath + 10, W / 2 - 8)
 			local cf = CFrame.new(x, -Drop, z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
 			Trees.build(name, decor, cf, pal, rng)
 		end
-		-- a row of trees along each ledge
-		for _, side in { -1, 1 } do
-			for k = 1, S.LedgeTrees do
-				local x = bx0 + (k - 0.5) * S.BiomeLength / S.LedgeTrees + rng:NextNumber(-10, 10)
-				local z = side * (W / 2 + Lw / 2 + rng:NextNumber(-2, 2))
-				local cf = CFrame.new(x, ledgeTop, z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
-				Trees.build(name, decor, cf, pal, rng)
-			end
+		local deco = Builder.model("Decor", bm)
+		for k = 1, S.Bushes do
+			local x = bx0 + rng:NextNumber(6, S.BiomeLength - 6)
+			local side = if k % 2 == 0 then 1 else -1
+			local z = side * rng:NextNumber(S.ClearPath, W / 2 - 3)
+			bush(deco, V3(x, -Drop, z), rng:NextNumber(4, 7), pal.Leaves[rng:NextInteger(1, #pal.Leaves)], rng:NextNumber(0, math.pi))
+		end
+		for k = 1, S.Flowers do
+			local x = bx0 + rng:NextNumber(4, S.BiomeLength - 4)
+			local side = if k % 2 == 0 then 1 else -1
+			local z = side * rng:NextNumber(S.ClearPath - 6, W / 2 - 2)
+			local heads = Colors.Flowers
+			flower(deco, V3(x, -Drop, z), pal.Grass, heads[rng:NextInteger(1, #heads)])
 		end
 		Map.Biomes[name] = { Model = bm, Ground = g, StartX = bx0, EndX = bx1 }
 	end
-	local outer = W / 2 + S.LedgeWidth + t
-	wall(biomesM, "EndWall", laneEnd, -outer, laneEnd + t, outer, -Drop, -Drop + S.OuterWallHeight, wallPal)
+	wall(biomesM, "EndWall", laneEnd, -outerZ, laneEnd + t, outerZ, -Drop, -Drop + S.BackWallHeight, wallPal)
 
 	Map.Model = root
 	return root
