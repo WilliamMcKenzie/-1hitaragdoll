@@ -3,11 +3,13 @@
 
 	Layout (X is the throw direction, Y up):
 	  - Spawn: a 3:1 rectangle of native baseplate ground, walled in with dirt.
-	  - The long +X wall has a gap in the middle. Through it is the hit zone, a
-	    short yellow ledge with "HIT ZONE" and punch emojis on it and a glowing
-	    white line at its edge. Past the line the ground drops away (the cliff).
-	  - Below the cliff the biomes run out one after another along +X, each
-	    Settings.BiomeLength long, between two long dirt walls.
+	  - The long +X wall opens onto the world through a gap as wide as the
+	    biome lane (QM). Through it: a glowing white line, then the hit zone, a
+	    thin yellow strip with big "HIT ZONE" text. Past the strip the ground
+	    steps down a few studs (Settings.Drop).
+	  - The biomes run out one after another along +X, each Settings.BiomeLength
+	    long, between stepped dirt walls: a low ledge with trees on it, then a
+	    tall wall behind (QM's reference, 2026-11-12).
 
 	Map.build() makes Workspace.Map. Gameplay code can read:
 	  Map.HitZone (part, attribute HitZone = true)
@@ -27,18 +29,23 @@ local Map = {}
 local V3 = Vector3.new
 
 Map.Settings = {
-	SpawnDepth = 60, -- short side (X)
-	SpawnLength = 180, -- long side (Z), 3:1
+	SpawnDepth = 80, -- short side (X)
+	SpawnLength = 240, -- long side (Z), 3:1
 	WallHeight = 14,
 	WallThickness = 4,
 	GrassCap = 2,
-	GapWidth = 40, -- the hole in the long wall
-	HitZoneDepth = 24,
-	Drop = 40, -- cliff height from the hit zone down to the biomes
-	LaneWidth = 160,
+	GapWidth = 120, -- the opening in the long wall: as wide as the lane (QM)
+	HitZoneDepth = 12, -- thin strip (QM)
+	LineWidth = 1.5, -- glowing line just before the strip, on the spawn side
+	Drop = 4, -- small step from the hit zone down to the biomes (QM: barely any)
+	LaneWidth = 120, -- = GapWidth
+	LedgeWidth = 18, -- biome walls: low ledge with trees ...
+	LedgeHeight = 10,
+	OuterWallHeight = 34, -- ... then the tall wall behind it (above the lane)
+	LedgeTrees = 9, -- per side per biome
 	BiomeLength = 500,
 	TreesPerBiome = 26,
-	ClearPath = 26, -- no trees within this many studs of the centre line
+	ClearPath = 20, -- no trees within this many studs of the centre line
 	Biomes = { "Forest", "Savanna" },
 	-- turns the HIT ZONE text so it reads from the spawn side
 	TextRotation = 180,
@@ -124,37 +131,13 @@ local function text(parent: Instance, t: string, size: UDim2, order: number)
 	return l
 end
 
--- 👊 on a dark round badge, so the yellow emoji stands out on the yellow ledge
-local function punch(parent: Instance, order: number)
-	local badge = Instance.new("Frame")
-	badge.Name = "Punch"
-	badge.Size = UDim2.fromScale(0.44, 0.44)
-	badge.SizeConstraint = Enum.SizeConstraint.RelativeYY
-	badge.BackgroundColor3 = Color3.new(0, 0, 0)
-	badge.BackgroundTransparency = 0.3
-	badge.LayoutOrder = order
-	badge.Parent = parent
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0.5, 0)
-	corner.Parent = badge
-	local ring = Instance.new("UIStroke")
-	ring.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	ring.Thickness = 3
-	ring.Color = Color3.new(1, 1, 1)
-	ring.Parent = badge
-	local e = text(badge, "👊", UDim2.fromScale(0.85, 0.85), 1)
-	e.AnchorPoint = Vector2.new(0.5, 0.5)
-	e.Position = UDim2.fromScale(0.5, 0.52)
-	return badge
-end
-
--- "👊 HIT ZONE 👊" painted on the ledge
+-- "HIT ZONE" painted across the strip, as big as it fits
 local function hitZoneText(hz: BasePart)
 	local S = Map.Settings
 	-- a flat carrier part, turned so the text reads from the spawn side
 	-- a Top-face SurfaceGui runs its width along the part's local Z, so the
 	-- long side goes on Z when the rotation is 0/180 and on X when it is 90/270
-	local across, along = S.GapWidth - 6, S.HitZoneDepth - 6
+	local across, along = hz.Size.Z - 2, hz.Size.X - 1
 	local size = if S.TextRotation % 180 == 0 then V3(along, 0.05, across) else V3(across, 0.05, along)
 	local carrier = Builder.part(hz.Parent :: Instance, size,
 		hz.CFrame * CFrame.new(0, hz.Size.Y / 2 + 0.03, 0) * CFrame.Angles(0, math.rad(S.TextRotation), 0),
@@ -168,37 +151,15 @@ local function hitZoneText(hz: BasePart)
 	gui.PixelsPerStud = 8 -- low on purpose: TextScaled tops out at 100 px, so this keeps the words big
 	gui.LightInfluence = 1
 	gui.Parent = carrier
-	local row = Instance.new("Frame")
-	row.BackgroundTransparency = 1
-	row.Size = UDim2.fromScale(1, 1)
-	row.Parent = gui
-	local list = Instance.new("UIListLayout")
-	list.FillDirection = Enum.FillDirection.Horizontal
-	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	list.VerticalAlignment = Enum.VerticalAlignment.Center
-	list.SortOrder = Enum.SortOrder.LayoutOrder
-	list.Padding = UDim.new(0.03, 0)
-	list.Parent = row
-	punch(row, 1)
-	local word = text(row, "HIT ZONE", UDim2.fromScale(0.58, 0.42), 2)
+	local word = text(gui, "HIT ZONE", UDim2.fromScale(0.97, 0.94), 1)
+	word.AnchorPoint = Vector2.new(0.5, 0.5)
+	word.Position = UDim2.fromScale(0.5, 0.5)
 	local stroke = Instance.new("UIStroke")
 	stroke.Thickness = 4
 	stroke.Color = Color3.new(0, 0, 0)
-	stroke.Transparency = 0
 	stroke.LineJoinMode = Enum.LineJoinMode.Round
 	stroke.Parent = word
-	punch(row, 3)
 	return carrier
-end
-
--- ">" arrow on the spawn floor, pointing at the hit zone
-local function chevron(parent: Instance, x: number, color: Color3)
-	local m = Builder.model("Chevron", parent)
-	for _, side in { -1, 1 } do
-		local cf = CFrame.new(x, 0.1, side * 4) * CFrame.Angles(0, math.rad(-side * 40), 0)
-		Builder.part(m, V3(3, 0.2, 12), cf, color, "studs", { name = if side < 0 then "Left" else "Right", castShadow = false })
-	end
-	return m
 end
 
 local function sign(parent: Instance, name: string, at: Vector3, color: Color3)
@@ -233,7 +194,7 @@ function Map.build(parent: Instance?)
 
 	local D, L, H, t = S.SpawnDepth, S.SpawnLength, S.WallHeight, S.WallThickness
 	local G, HZ, Drop, W = S.GapWidth, S.HitZoneDepth, S.Drop, S.LaneWidth
-	local edgeZ = math.max(L, W) / 2 + t -- outer Z of the spawn and cliff
+	local edgeZ = math.max(L / 2 + t, W / 2 + S.LedgeWidth + t) -- outer Z of the spawn and cliff
 
 	----------------------------------------------------------------- spawn
 	local spawnM = Builder.model("Spawn", root)
@@ -243,9 +204,6 @@ function Map.build(parent: Instance?)
 	wall(spawnM, "SideWallRight", -D, L / 2, 0, L / 2 + t, 0, H, wallPal)
 	wall(spawnM, "FrontWallLeft", 0, -L / 2 - t, t, -G / 2, 0, H, wallPal)
 	wall(spawnM, "FrontWallRight", 0, G / 2, t, L / 2 + t, 0, H, wallPal)
-	for i = 1, 3 do
-		chevron(spawnM, -30 + (i - 1) * 9, C.Chevron)
-	end
 	-- the place's SpawnLocation, made invisible and moved to the back of the spawn
 	local sp = Workspace:FindFirstChildOfClass("SpawnLocation")
 	if not sp then
@@ -267,17 +225,22 @@ function Map.build(parent: Instance?)
 
 	--------------------------------------------------------------- hit zone
 	local hzM = Builder.model("HitZone", root)
-	local x0, x1 = t, t + HZ
-	-- the cliff under the ledge and the raised cliff either side of the gap
-	slab(hzM, "CliffFace", V3(0, -Drop, -G / 2), V3(x1, -1, G / 2), C.Dirt, "terrain")
-	wall(hzM, "CliffLeft", x0, -edgeZ, x1, -G / 2, -Drop, H, wallPal)
-	wall(hzM, "CliffRight", x0, G / 2, x1, edgeZ, -Drop, H, wallPal)
-	local hz = slab(hzM, "Zone", V3(0, -1, -G / 2), V3(x1, 0, G / 2), C.HitZone, "terrain")
-	-- under the front wall pieces either side of the gap, so they stand on something
-	slab(hzM, "WallFootLeft", V3(0, -Drop, -edgeZ), V3(x0, 0, -G / 2), C.Dirt, "terrain")
-	slab(hzM, "WallFootRight", V3(0, -Drop, G / 2), V3(x0, 0, edgeZ), C.Dirt, "terrain")
+	-- gap floor (under the front wall), then the glowing line, then the strip
+	local lx0, lx1 = t, t + S.LineWidth
+	local x1 = lx1 + HZ
+	ground(hzM, "GapFloor", 0, -G / 2, t, G / 2, 0, C.SpawnGround)
+	local hz = slab(hzM, "Zone", V3(lx1, -1, -G / 2), V3(x1, 0, G / 2), C.HitZone, "terrain")
 	hz:SetAttribute("HitZone", true)
-	local line = slab(hzM, "GlowLine", V3(x1 - 1, 0, -G / 2), V3(x1, 0.2, G / 2), C.Line, "smooth",
+	slab(hzM, "LineBed", V3(lx0, -1, -G / 2), V3(lx1, 0, G / 2), C.HitZone, "terrain")
+	-- the small step down to the lane, and the walls either side of the opening
+	slab(hzM, "StepFace", V3(0, -Drop, -G / 2), V3(x1, -1, G / 2), C.Dirt, "terrain")
+	if edgeZ > G / 2 then
+		wall(hzM, "CliffLeft", t, -edgeZ, x1, -G / 2, -Drop, H, wallPal)
+		wall(hzM, "CliffRight", t, G / 2, x1, edgeZ, -Drop, H, wallPal)
+		slab(hzM, "WallFootLeft", V3(0, -Drop, -edgeZ), V3(t, 0, -G / 2), C.Dirt, "terrain")
+		slab(hzM, "WallFootRight", V3(0, -Drop, G / 2), V3(t, 0, edgeZ), C.Dirt, "terrain")
+	end
+	local line = slab(hzM, "GlowLine", V3(lx0, 0, -G / 2), V3(lx1, 0.2, G / 2), C.Line, "smooth",
 		{ material = Enum.Material.Neon, canCollide = false, castShadow = false })
 	local light = Instance.new("SurfaceLight")
 	light.Face = Enum.NormalId.Top
@@ -291,7 +254,7 @@ function Map.build(parent: Instance?)
 
 	----------------------------------------------------------------- biomes
 	local biomesM = Builder.model("Biomes", root)
-	local laneStart = x1
+	local laneStart = t + S.LineWidth + HZ
 	local laneEnd = laneStart + #S.Biomes * S.BiomeLength
 	Map.Biomes = {}
 	for i, name in S.Biomes do
@@ -299,13 +262,18 @@ function Map.build(parent: Instance?)
 		local bx0 = laneStart + (i - 1) * S.BiomeLength
 		local bx1 = bx0 + S.BiomeLength
 		local bm = Builder.model(name, biomesM)
-		local g = ground(bm, "Ground", bx0, -W / 2 - t, bx1, W / 2 + t, -Drop, pal.Ground)
+		local g = ground(bm, "Ground", bx0, -W / 2 - S.LedgeWidth - t, bx1, W / 2 + S.LedgeWidth + t, -Drop, pal.Ground)
 		g:SetAttribute("Biome", name)
 		g:SetAttribute("StartX", bx0)
 		g:SetAttribute("EndX", bx1)
 		local wp = { Dirt = pal.Dirt, Grass = pal.Grass }
-		wall(bm, "WallLeft", bx0, -W / 2 - t, bx1, -W / 2, -Drop, H, wp)
-		wall(bm, "WallRight", bx0, W / 2, bx1, W / 2 + t, -Drop, H, wp)
+		-- stepped walls: a low ledge (trees on it), then the tall wall behind
+		local Lw, Lh, Oh = S.LedgeWidth, S.LedgeHeight, S.OuterWallHeight
+		local ledgeTop = -Drop + Lh
+		wall(bm, "LedgeLeft", bx0, -W / 2 - Lw, bx1, -W / 2, -Drop, ledgeTop, wp)
+		wall(bm, "LedgeRight", bx0, W / 2, bx1, W / 2 + Lw, -Drop, ledgeTop, wp)
+		wall(bm, "WallLeft", bx0, -W / 2 - Lw - t, bx1, -W / 2 - Lw, -Drop, -Drop + Oh, wp)
+		wall(bm, "WallRight", bx0, W / 2 + Lw, bx1, W / 2 + Lw + t, -Drop, -Drop + Oh, wp)
 		sign(bm, name, V3(bx0 + 70, -Drop + 46, 0), pal.Sign)
 		-- trees down both sides, leaving the centre clear for the ragdoll
 		local decor = Builder.model("Trees", bm)
@@ -318,9 +286,19 @@ function Map.build(parent: Instance?)
 			local cf = CFrame.new(x, -Drop, z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
 			Trees.build(name, decor, cf, pal, rng)
 		end
+		-- a row of trees along each ledge
+		for _, side in { -1, 1 } do
+			for k = 1, S.LedgeTrees do
+				local x = bx0 + (k - 0.5) * S.BiomeLength / S.LedgeTrees + rng:NextNumber(-10, 10)
+				local z = side * (W / 2 + Lw / 2 + rng:NextNumber(-2, 2))
+				local cf = CFrame.new(x, ledgeTop, z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
+				Trees.build(name, decor, cf, pal, rng)
+			end
+		end
 		Map.Biomes[name] = { Model = bm, Ground = g, StartX = bx0, EndX = bx1 }
 	end
-	wall(biomesM, "EndWall", laneEnd, -W / 2 - t, laneEnd + t, W / 2 + t, -Drop, H, wallPal)
+	local outer = W / 2 + S.LedgeWidth + t
+	wall(biomesM, "EndWall", laneEnd, -outer, laneEnd + t, outer, -Drop, -Drop + S.OuterWallHeight, wallPal)
 
 	Map.Model = root
 	return root
