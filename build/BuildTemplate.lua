@@ -730,7 +730,16 @@ function UI.offer(opts)
 		ZIndex = 4,
 		Parent = opts.Parent,
 	})
-	local st = new("UIStroke", { Thickness = 3, Color = Color3.new(0, 0, 0), Parent = f })
+	-- the 3px black border sits on an overlay above the glow strips (a stroke
+	-- on the card itself is drawn under its children and got covered)
+	local border = new("Frame", {
+		Name = "Border",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 5,
+		Parent = f,
+	})
+	local st = new("UIStroke", { Thickness = 3, Color = Color3.new(0, 0, 0), Parent = border })
 	pcall(function()
 		(st :: any).BorderStrokePosition = Enum.BorderStrokePosition.Inner
 	end)
@@ -2598,7 +2607,16 @@ function UI.offer(opts)
 		ZIndex = 4,
 		Parent = opts.Parent,
 	})
-	local st = new("UIStroke", { Thickness = 3, Color = Color3.new(0, 0, 0), Parent = f })
+	-- the 3px black border sits on an overlay above the glow strips (a stroke
+	-- on the card itself is drawn under its children and got covered)
+	local border = new("Frame", {
+		Name = "Border",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 5,
+		Parent = f,
+	})
+	local st = new("UIStroke", { Thickness = 3, Color = Color3.new(0, 0, 0), Parent = border })
 	pcall(function()
 		(st :: any).BorderStrokePosition = Enum.BorderStrokePosition.Inner
 	end)
