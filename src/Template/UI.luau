@@ -384,9 +384,10 @@ function UI.buyButton(opts)
 		Parent = b,
 		Text = opts.Text or "+10M",
 		TextSize = 36,
-		-- label hangs 13px below the bottom edge, as in Figma
+		-- label hangs ~13px below the bottom edge, as in Figma (box at 37, not
+		-- 43: Roblox sets FredokaOne lower in its box than Figma does)
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 43),
+		Position = UDim2.new(0.5, 0, 0, 37),
 		Size = UDim2.new(1, 0, 0, 44),
 	})
 	if opts.Price then
