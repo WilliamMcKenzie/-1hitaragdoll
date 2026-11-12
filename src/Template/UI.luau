@@ -125,50 +125,61 @@ end
 -- White FredokaOne text with a dark outline. TextSize is the Figma size.
 function UI.text(props: { [string]: any })
 	local size = (props.TextSize or 36) * UI.TextScale
-	local t = new("TextLabel", {
-		Name = props.Name or "Label",
-		BackgroundTransparency = 1,
-		Font = UI.Font,
-		Text = props.Text or "",
-		TextColor3 = props.TextColor3 or Color3.new(1, 1, 1),
-		TextSize = size,
-		TextXAlignment = props.TextXAlignment or Enum.TextXAlignment.Center,
-		TextYAlignment = Enum.TextYAlignment.Center,
-		Size = props.Size or UDim2.fromScale(1, 1),
-		Position = props.Position or UDim2.new(),
-		AnchorPoint = props.AnchorPoint or Vector2.zero,
-		ZIndex = props.ZIndex or 5,
-		Parent = props.Parent,
-	})
-	new("UIStroke", {
-		Thickness = props.Stroke or math.max(2, size / 15),
-		Color = props.StrokeColor or UI.TextOutline,
-		Transparency = props.StrokeTransparency or 0,
-		LineJoinMode = Enum.LineJoinMode.Round,
-		Parent = t,
-	})
-	-- Shadow: Figma's drop shadow (black, 4px down) as a black copy behind
+	local parent = props.Parent
+	local holder = nil
+	-- Shadow: Figma's drop shadow (black, 4px down). A child always draws over
+	-- its parent, so the label and a black copy share a transparent holder
+	-- (the holder takes the label's place in the layout; label.Parent is it).
 	if props.Shadow then
-		local sh = new("TextLabel", {
-			Name = "Shadow",
+		holder = new("Frame", {
+			Name = props.Name or "Label",
+			BackgroundTransparency = 1,
+			Size = props.Size or UDim2.fromScale(1, 1),
+			Position = props.Position or UDim2.new(),
+			AnchorPoint = props.AnchorPoint or Vector2.zero,
+			ZIndex = props.ZIndex or 5,
+			Parent = parent,
+		})
+	end
+	local function label(name, color, strokeColor, strokeT, z, pos)
+		local t = new("TextLabel", {
+			Name = name,
 			BackgroundTransparency = 1,
 			Font = UI.Font,
-			Text = t.Text,
-			TextColor3 = Color3.new(0, 0, 0),
+			Text = props.Text or "",
+			TextColor3 = color,
 			TextSize = size,
-			TextXAlignment = t.TextXAlignment,
-			TextYAlignment = t.TextYAlignment,
-			Size = UDim2.fromScale(1, 1),
-			Position = UDim2.fromOffset(0, 4),
-			ZIndex = t.ZIndex - 1,
-			Parent = t,
+			TextXAlignment = props.TextXAlignment or Enum.TextXAlignment.Center,
+			TextYAlignment = Enum.TextYAlignment.Center,
+			Size = if holder then UDim2.fromScale(1, 1) else (props.Size or UDim2.fromScale(1, 1)),
+			Position = if holder then pos else (props.Position or UDim2.new()),
+			AnchorPoint = if holder then Vector2.zero else (props.AnchorPoint or Vector2.zero),
+			ZIndex = z,
+			Parent = holder or parent,
 		})
 		new("UIStroke", {
 			Thickness = props.Stroke or math.max(2, size / 15),
-			Color = Color3.new(0, 0, 0),
+			Color = strokeColor,
+			Transparency = strokeT,
 			LineJoinMode = Enum.LineJoinMode.Round,
-			Parent = sh,
+			Parent = t,
 		})
+		return t
+	end
+	local z = props.ZIndex or 5
+	local sh = nil
+	if holder then
+		sh = label("Shadow", Color3.new(0, 0, 0), Color3.new(0, 0, 0), 0, z, UDim2.fromOffset(0, 4))
+	end
+	local t = label(
+		if holder then "Text" else (props.Name or "Label"),
+		props.TextColor3 or Color3.new(1, 1, 1),
+		props.StrokeColor or UI.TextOutline,
+		props.StrokeTransparency or 0,
+		if holder then z + 1 else z,
+		UDim2.new()
+	)
+	if sh then
 		t:GetPropertyChangedSignal("Text"):Connect(function()
 			sh.Text = t.Text
 		end)
@@ -644,7 +655,12 @@ function UI.popup(opts)
 		ZIndex = 20,
 	})
 	p:SetAttribute("Popup", true)
-	UI.face(p, table.clone(GLASS))
+	-- Figma draws black 50% over a white page, so the panel reads as mid grey;
+	-- in game use that grey (nearly opaque) rather than black 50% over the world
+	local panel = table.clone(GLASS)
+	panel.Color = rgb(128, 128, 128)
+	panel.Alpha = 0.92
+	UI.face(p, panel)
 	;(p:FindFirstChild("Studs") :: any).Image = UI.Assets.StudsSquare
 	-- reference screenshots: the panel is ~57% of the screen height
 	new("UIScale", { Name = "PopupScale", Scale = UI.PopupScale, Parent = p })
@@ -711,19 +727,34 @@ function UI.offer(opts)
 	pcall(function()
 		(st :: any).BorderStrokePosition = Enum.BorderStrokePosition.Inner
 	end)
-	-- Figma: inner shadow white, blur 16, spread 16 -> grey inset with a soft edge
-	local fill = new("Frame", {
-		Name = "Fill",
-		BackgroundColor3 = UI.Colors.OfferGrey,
-		BorderSizePixel = 0,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, -40, 1, -40),
-		ZIndex = 4,
-		Parent = f,
-	})
-	corner(fill, 10)
-	new("UIStroke", { Thickness = 6, Color = rgb(236, 236, 236), Parent = fill })
+	-- Figma: grey fill with an inner shadow white, blur 16, spread 16: solid
+	-- white for ~8px then fading to the grey by ~24px, on all four edges
+	f.BackgroundColor3 = UI.Colors.OfferGrey
+	for _, e in {
+		{ "Top", UDim2.new(1, 0, 0, 26), UDim2.new(), 90 },
+		{ "Bottom", UDim2.new(1, 0, 0, 26), UDim2.new(0, 0, 1, -26), 270 },
+		{ "Left", UDim2.new(0, 26, 1, 0), UDim2.new(), 0 },
+		{ "Right", UDim2.new(0, 26, 1, 0), UDim2.new(1, -26, 0, 0), 180 },
+	} do
+		local g = new("Frame", {
+			Name = "Glow" .. e[1],
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			BorderSizePixel = 0,
+			Size = e[2],
+			Position = e[3],
+			ZIndex = 4,
+			Parent = f,
+		})
+		new("UIGradient", {
+			Rotation = e[4],
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0),
+				NumberSequenceKeypoint.new(0.3, 0),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+			Parent = g,
+		})
+	end
 	return f
 end
 
@@ -748,8 +779,7 @@ function UI.shopPopup(opts)
 		Size = UDim2.new(1, -32, 1, -106),
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollBarThickness = 6,
-		ScrollBarImageColor3 = Color3.new(1, 1, 1),
+		ScrollBarThickness = 0, -- Figma has no bar; it would cut the cards' edge
 		ScrollingDirection = Enum.ScrollingDirection.Y,
 		ZIndex = 4,
 		Parent = p,
@@ -759,7 +789,7 @@ function UI.shopPopup(opts)
 	local order = 0
 	for si, sec in sections do
 		order += 1
-		UI.text({
+		local title = UI.text({
 			Name = "Section" .. si,
 			Parent = list,
 			Text = sec.Title,
@@ -767,7 +797,8 @@ function UI.shopPopup(opts)
 			Shadow = true,
 			Size = UDim2.new(1, 0, 0, 58),
 			ZIndex = 6,
-		}).LayoutOrder = order
+		})
+		;(title.Parent :: Frame).LayoutOrder = order
 		for oi, oh in sec.Offers do
 			order += 1
 			UI.offer({ Name = ("Offer%d_%d"):format(si, oi), Height = oh, LayoutOrder = order, Parent = list })
