@@ -1,2 +1,5 @@
 node_modules/
 *.rbxlx.lock
+_old_places/
+*.rbxl.lock
+1HitARagdoll.rbxl
