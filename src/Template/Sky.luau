@@ -1,5 +1,5 @@
 --[[
-	Sky: puts the free "Anime Sky" skybox from the Creator Store into Lighting.
+	Sky: puts the free "Anime sky" skybox (asset 13107361022) from the Creator Store into Lighting.
 
 	Only the Sky instance is taken from the model, so no scripts come along.
 	Sky.AssetId pins a specific asset; left nil, the first free model whose name
@@ -11,7 +11,7 @@ local LightingService = game:GetService("Lighting")
 
 local Sky = {}
 
-Sky.AssetId = 72835926026092 :: number? -- Anime Sky by Aschorking (free)
+Sky.AssetId = 13107361022 :: number? -- "Anime sky" (QM picked it, 2026-11-12)
 Sky.Query = "Anime Sky"
 
 function Sky.find(): (number?, string?)

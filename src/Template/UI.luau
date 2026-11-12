@@ -38,6 +38,14 @@ UI.BarWidth = 768
 -- the bottom cluster / counters get their own extra scale so their on-screen
 -- size matches the reference too.
 UI.RefHeight = 1300
+-- the HUD also shrinks on screens narrower than 1625:1300 (5:4), so the left
+-- column and the bottom cluster never overlap; 16:9 and 4:3 are unchanged
+UI.RefWidth = 1625
+
+-- the HUD's AutoScale for a viewport (the controller uses the same formula)
+function UI.fitScale(viewport: Vector2): number
+	return math.clamp(math.min(viewport.Y / UI.RefHeight, viewport.X / UI.RefWidth), 0.3, 1.6)
+end
 UI.BottomScale = 0.945 -- bar 830 px wide on a 1488 px screen
 UI.PopupScale = 1.15 -- popups ~57% of the screen height, as in QM's references
 UI.CounterScale = 1.25 -- counter icons ~100 px on a 1488 px screen
@@ -849,9 +857,11 @@ local camera = workspace.CurrentCamera
 -- the HUD takes the share of the screen it does in QM's layout reference)
 local autoScale = gui:FindFirstChild("AutoScale")
 local refHeight = gui:GetAttribute("RefHeight") or 1300
+local refWidth = gui:GetAttribute("RefWidth") or 1625
 local function rescale()
 	if autoScale then
-		autoScale.Scale = math.clamp(camera.ViewportSize.Y / refHeight, 0.3, 1.6)
+		local v = camera.ViewportSize
+		autoScale.Scale = math.clamp(math.min(v.Y / refHeight, v.X / refWidth), 0.3, 1.6)
 	end
 end
 camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
@@ -1026,9 +1036,26 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		ResetOnSpawn = false,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	})
-	new("UIScale", { Name = "AutoScale", Parent = gui })
+	local autoScale = new("UIScale", { Name = "AutoScale", Parent = gui })
 
 	gui:SetAttribute("RefHeight", UI.RefHeight)
+	gui:SetAttribute("RefWidth", UI.RefWidth)
+	-- LocalScripts don't run in edit mode, so size it for the Studio viewport
+	-- now and follow window resizes for this Studio session (the controller
+	-- takes over in play)
+	local cam = workspace.CurrentCamera
+	if cam then
+		autoScale.Scale = UI.fitScale(cam.ViewportSize)
+		local G = _G :: any
+		if G.__HUDFitConn then
+			G.__HUDFitConn:Disconnect()
+		end
+		G.__HUDFitConn = cam:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+			if autoScale.Parent then
+				autoScale.Scale = UI.fitScale(cam.ViewportSize)
+			end
+		end)
+	end
 
 	-- left: Shop over a 2x3 grid of see-through square buttons, 8px gaps. Positions
 	-- are fractions of the screen taken from QM's reference screenshot.
