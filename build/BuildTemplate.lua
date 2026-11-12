@@ -1037,7 +1037,8 @@ function Map.build(parent: Instance?)
 	end
 	sp.Anchored = true
 	sp.Size = V3(12, 1, 12)
-	sp.CFrame = CFrame.new(-D + 14, -0.45, 0)
+	-- players spawn facing +X, at the gap and the hit zone (a SpawnLocation's front is -Z)
+	sp.CFrame = CFrame.new(-D + 14, -0.45, 0) * CFrame.Angles(0, -math.pi / 2, 0)
 	sp.Transparency = 1
 	sp.CanCollide = false
 	sp.Neutral = true
