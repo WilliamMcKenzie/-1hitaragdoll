@@ -66,7 +66,8 @@ UI.FallbackStuds = "rbxassetid://100359261064701"
 
 local rgb = Color3.fromRGB
 UI.Colors = {
-	Red = rgb(255, 0, 49), -- Shop
+	Red = rgb(255, 0, 49),
+	ShopGold = rgb(255, 194, 0), -- Shop (Figma v3)
 	Purple = rgb(238, 0, 255), -- Auras square
 	Orange = rgb(255, 72, 0), -- Pets square
 	Blue = rgb(0, 212, 255), -- level bar
@@ -271,13 +272,15 @@ function UI.rectButton(opts)
 end
 
 --[[ Square button (Figma SquareButton, 128x128): one 96px icon, optional label.
-	opts: Name, Icon, Color, Text, Parent, Opens ]]
+	opts: Name, Icon, Color, Text, Badge (text over the top edge), Parent, Opens ]]
 function UI.squareButton(opts)
-	-- no Color: the Figma SquareButton, a see-through face (black fill at 20%,
-	-- black shade 0 -> 20% over the bottom half, pattern at 20%, 50% black outline)
+	-- no Color: the Figma SquareButton (v3), a see-through face: black fill at
+	-- 50%, black shade 0 -> 50% over the bottom half, pattern at 20%, 50% black outline
 	local b, v = button(opts.Name or "SquareButton", 128, 128, {
 		Color = opts.Color or Color3.new(0, 0, 0),
-		Alpha = if opts.Color then 1 else 0.2,
+		Alpha = if opts.Color then 1 else 0.5,
+		ShadeFrom = 0.5,
+		ShadeAlpha = if opts.Color then 0.2 else 0.5,
 		Studs = UI.Assets.StudsSquare,
 		StudTile = 230,
 		StudAlpha = 0.2,
@@ -296,6 +299,19 @@ function UI.squareButton(opts)
 			Size = UDim2.new(1, 0, 0, 36),
 			Position = UDim2.new(0.5, 0, 1, 2),
 			AnchorPoint = Vector2.new(0.5, 1),
+		})
+	end
+	-- Badge: Figma v3 "97%" on Rebirth, 36px, its box top 10px above the square
+	if opts.Badge then
+		UI.text({
+			Name = "Badge",
+			Parent = v,
+			Text = opts.Badge,
+			TextSize = 36,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 4, 0, -10),
+			Size = UDim2.new(1, 0, 0, 44),
+			ZIndex = 6,
 		})
 	end
 	return finish(b, opts)
@@ -590,7 +606,7 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 
 	gui:SetAttribute("RefHeight", UI.RefHeight)
 
-	-- left: Shop over a 2x3 grid of grey square buttons, 8px gaps. Positions
+	-- left: Shop over a 2x3 grid of see-through square buttons, 8px gaps. Positions
 	-- are fractions of the screen taken from QM's reference screenshot.
 	local left = new("Frame", {
 		Name = "Left",
@@ -601,8 +617,9 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		Parent = gui,
 	})
 	new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = left })
-	UI.rectButton({ Name = "Shop", Text = "Shop", Icon = A.Shop, Color = C.Yellow, Opens = "ShopModal", LayoutOrder = 1, Parent = left })
-	local grid = new("Frame", { Name = "Buttons", BackgroundTransparency = 1, Size = UDim2.fromOffset(264, 128 * 3 + 8 * 2), LayoutOrder = 2, Parent = left })
+	UI.rectButton({ Name = "Shop", Text = "Shop", Icon = A.Shop, Color = C.ShopGold, Opens = "ShopModal", LayoutOrder = 1, Parent = left })
+	local grid = new("Frame", { Name = "Buttons", BackgroundTransparency = 1, Size = UDim2.fromOffset(264, 128 * 3 + 8 * 2), LayoutOrder = 2, ZIndex = 2, Parent = left })
+	-- ZIndex 2: the Rebirth badge pokes up over the Shop button's bottom edge
 	new("UIGridLayout", {
 		CellSize = UDim2.fromOffset(128, 128),
 		CellPadding = UDim2.fromOffset(8, 8),
@@ -611,14 +628,14 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 	})
 	local squares = {
 		{ "Auras", A.Aura },
-		{ "Rebirth", A.Rebirth },
+		{ "Rebirth", A.Rebirth, "97%" },
 		{ "Pets", A.Pet },
 		{ "Trails", A.Trails },
 		{ "Inventory", A.Inventory },
 		{ "Gifts", A.Gifts },
 	}
 	for i, sq in squares do
-		UI.squareButton({ Name = sq[1], Icon = sq[2], LayoutOrder = i, Parent = grid })
+		UI.squareButton({ Name = sq[1], Icon = sq[2], Badge = sq[3], LayoutOrder = i, Parent = grid })
 	end
 
 	-- bottom-left: counters, trophy first (Figma v2), 8px apart
