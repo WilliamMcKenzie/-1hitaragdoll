@@ -93,16 +93,17 @@ function Lighting.apply()
 	for k, v in Lighting.Atmosphere do
 		(atmosphere :: any)[k] = v
 	end
-	local realistic = loadRealisticSky()
+	-- SkyAsset = nil leaves the sky to the caller (the template loads AnimeSky)
+	local realistic = if Lighting.SkyAsset then loadRealisticSky() else nil
 	if realistic then
 		for _, old in LightingService:GetChildren() do
 			if old:IsA("Sky") then
-				old:Destroy()
+				old.Parent = nil
 			end
 		end
 		realistic.Name = "RealisticSky"
 		realistic.Parent = LightingService
-	else
+	elseif Lighting.SkyAsset then
 		local sky = child("Sky", "Sky") :: Sky
 		for _, face in { "SkyboxBk", "SkyboxDn", "SkyboxFt", "SkyboxLf", "SkyboxRt", "SkyboxUp" } do
 			(sky :: any)[face] = Lighting.SkyTexture

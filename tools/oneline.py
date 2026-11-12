@@ -18,7 +18,8 @@ while i < n:
         else:
             while i < n and src[i] != '\n':
                 i += 1
-        out.append(' ')
+        if not out or not out[-1].endswith(' '):
+            out.append(' ')
         continue
     if c in '"\'':
         j = i + 1
@@ -29,10 +30,21 @@ while i < n:
         j = src.index('`', i + 1); out.append(src[i:j + 1]); i = j + 1; continue
     if c == '[' and long_bracket(src, i) >= 0:
         lvl = long_bracket(src, i); end = ']' + '=' * lvl + ']'
-        j = src.index(end, i) + len(end); out.append(src[i:j]); i = j; continue
-    out.append(' ' if c in '\n\t\r' else c); i += 1
+        j = src.index(end, i)
+        body = src[i + lvl + 2:j]
+        if body.startswith('\n'):
+            body = body[1:]
+        # long strings become one-line quoted strings so nothing in the output has a newline
+        esc = body.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\t', '\\t').replace('\r', '')
+        out.append('"' + esc + '"'); i = j + len(end); continue
+    if c in ' \n\t\r':
+        if not out or not out[-1].endswith(' '):
+            out.append(' ')
+    else:
+        out.append(c)
+    i += 1
 s = ''.join(out)
 import re
-s = re.sub(r' {2,}', ' ', s).strip()
+s = s.strip()  # runs of spaces are left alone: they may sit inside strings
 pathlib.Path(sys.argv[2]).write_text(s)
 print(len(s))
