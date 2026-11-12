@@ -1532,7 +1532,7 @@ function Map.build(parent: Instance?)
 	wall(spawnM, "SideWallRight", -D, L / 2, 0, L / 2 + t, 0, H, wallPal)
 	wall(spawnM, "FrontWallLeft", 0, -L / 2 - t, t, -G / 2, 0, H, wallPal)
 	wall(spawnM, "FrontWallRight", 0, G / 2, t, L / 2 + t, 0, H, wallPal)
-	-- the place's SpawnLocation, made invisible and moved to the back of the spawn
+	-- the place's SpawnLocation, made invisible, in front of the middle of the spawn
 	local sp = Workspace:FindFirstChildOfClass("SpawnLocation")
 	if not sp then
 		sp = Instance.new("SpawnLocation")
@@ -1541,7 +1541,8 @@ function Map.build(parent: Instance?)
 	sp.Anchored = true
 	sp.Size = V3(12, 1, 12)
 	-- players spawn facing +X, at the gap and the hit zone (a SpawnLocation's front is -Z)
-	sp.CFrame = CFrame.new(-D + 14, -0.45, 0) * CFrame.Angles(0, -math.pi / 2, 0)
+	-- ~34 studs back from the strip so HIT ZONE reads from the spawn view
+	sp.CFrame = CFrame.new(-30, -0.45, 0) * CFrame.Angles(0, -math.pi / 2, 0)
 	sp.Transparency = 1
 	sp.CanCollide = false
 	sp.Neutral = true
