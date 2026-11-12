@@ -23,18 +23,21 @@ local UI = {}
 
 UI.Font = Enum.Font.FredokaOne
 UI.TextOutline = Color3.fromRGB(26, 16, 48)
+-- Roblox draws FredokaOne about 20% smaller than Figma at the same size, so
+-- every Figma text size is multiplied by this (measured against docs/figma)
+UI.TextScale = 1.2
 
 -- Uploaded from the Figma file (rbxassetid). Empty = not uploaded yet.
 UI.Assets = {
-	Studs = "", -- stud tile used by rect / progress / buy buttons (89.4px tile, 40%)
-	StudsSquare = "", -- stud texture on the square buttons (230px tile, 20%)
-	Shop = "", -- basket
-	Aura = "",
-	Pet = "",
-	Skill = "", -- small flexed arm
-	Trophy = "",
-	Rebirth = "",
-	Muscle = "", -- big flexed arm on the buy buttons
+	Studs = "rbxassetid://115518459266095", -- stud tile used by rect / progress / buy buttons (89.4px tile, 40%)
+	StudsSquare = "rbxassetid://135739892997443", -- stud texture on the square buttons (230px tile, 20%)
+	Shop = "rbxassetid://105128988344580", -- basket
+	Aura = "rbxassetid://87628923496008",
+	Pet = "rbxassetid://75080514724176",
+	Skill = "rbxassetid://89389357448559", -- small flexed arm
+	Trophy = "rbxassetid://121674502856865",
+	Rebirth = "rbxassetid://91294314164136",
+	Muscle = "rbxassetid://89389357448559", -- big flexed arm on the buy buttons
 }
 UI.FallbackStuds = "rbxassetid://100359261064701"
 
@@ -79,7 +82,7 @@ end
 
 -- White FredokaOne text with a dark outline. TextSize is the Figma size.
 function UI.text(props: { [string]: any })
-	local size = props.TextSize or 36
+	local size = (props.TextSize or 36) * UI.TextScale
 	local t = new("TextLabel", {
 		Name = props.Name or "Label",
 		BackgroundTransparency = 1,
@@ -96,7 +99,7 @@ function UI.text(props: { [string]: any })
 		Parent = props.Parent,
 	})
 	new("UIStroke", {
-		Thickness = props.Stroke or math.max(2, size / 14),
+		Thickness = props.Stroke or math.max(2, size / 15),
 		Color = UI.TextOutline,
 		LineJoinMode = Enum.LineJoinMode.Round,
 		Parent = t,
@@ -133,6 +136,10 @@ function UI.face(f: GuiObject, style)
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Parent = f,
 	})
+	-- Figma draws the outline inside the frame
+	pcall(function()
+		(f:FindFirstChildOfClass("UIStroke") :: any).BorderStrokePosition = Enum.BorderStrokePosition.Inner
+	end)
 	local shade = new("Frame", {
 		Name = "Shade",
 		Size = UDim2.fromScale(1, 1),
@@ -401,8 +408,9 @@ function UI.modal(opts)
 	local m = new("Frame", {
 		Name = opts.Name or "Modal",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(860, 560),
+		Position = UDim2.fromScale(0.5, 0.45),
+		-- fits two rows of five 128px cards; Content scrolls past that
+		Size = UDim2.fromOffset(860, 452),
 		Visible = opts.Visible ~= false,
 		ZIndex = 10,
 	})
@@ -470,11 +478,12 @@ local TweenService = game:GetService("TweenService")
 local gui = script.Parent
 local camera = workspace.CurrentCamera
 
--- the layout is drawn at Figma size for a 1200px-tall screen
+-- the layout is drawn at Figma size for a 1000px-tall screen (sized so the
+-- HUD takes about the share of the screen it does in QM's layout reference)
 local autoScale = gui:FindFirstChild("AutoScale")
 local function rescale()
 	if autoScale then
-		autoScale.Scale = math.clamp(camera.ViewportSize.Y / 1200, 0.4, 1.2)
+		autoScale.Scale = math.clamp(camera.ViewportSize.Y / 1000, 0.4, 1.4)
 	end
 end
 camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
@@ -602,9 +611,14 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		{ "Wins", A.Trophy, C.Yellow },
 		{ "Rebirth", A.Rebirth, C.Blue },
 		{ "Skill", A.Muscle, C.Magenta },
+		{ "Basket", A.Shop, C.Red },
+		{ "Mega Pet", A.Pet, C.Purple },
+		{ "x2 Wins", A.Trophy, C.Orange },
+		{ "Power", A.Muscle, C.BuyRed },
+		{ "Aura+", A.Aura, C.Blue },
 	}
 	for i, it in items do
-		UI.squareButton({ Name = it[1], Icon = it[2], Color = it[3], LayoutOrder = i, Parent = content })
+		UI.squareButton({ Name = it[1], Icon = it[2], Color = it[3], Text = it[1], LayoutOrder = i, Parent = content })
 	end
 
 	local controller = Instance.new("LocalScript")
