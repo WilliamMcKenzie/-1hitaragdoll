@@ -437,10 +437,13 @@ function UI.buyButton(opts)
 	})
 	UI.image(UI.Assets.Muscle, {
 		Parent = v,
-		-- v2: 96px arm, its top 22px above the top edge
-		Size = UDim2.fromOffset(96, 96),
+		-- Figma: 96px arm, top 22px above the top edge. Our upload keeps the
+		-- image's soft transparent margin (the arm is only ~73% of the frame),
+		-- which Figma's render crops, so the frame is 116px and starts 26px up
+		-- to give the same visible arm (about 1.13x the button's height)
+		Size = UDim2.fromOffset(116, 116),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, -22),
+		Position = UDim2.new(0.5, 0, 0, -26),
 	})
 	UI.text({
 		Name = "Label",
@@ -1771,10 +1774,13 @@ function UI.buyButton(opts)
 	})
 	UI.image(UI.Assets.Muscle, {
 		Parent = v,
-		-- v2: 96px arm, its top 22px above the top edge
-		Size = UDim2.fromOffset(96, 96),
+		-- Figma: 96px arm, top 22px above the top edge. Our upload keeps the
+		-- image's soft transparent margin (the arm is only ~73% of the frame),
+		-- which Figma's render crops, so the frame is 116px and starts 26px up
+		-- to give the same visible arm (about 1.13x the button's height)
+		Size = UDim2.fromOffset(116, 116),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, -22),
+		Position = UDim2.new(0.5, 0, 0, -26),
 	})
 	UI.text({
 		Name = "Label",
