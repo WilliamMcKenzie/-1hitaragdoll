@@ -6,20 +6,22 @@ local function __require(name)
 	return __cache[name]
 end
 local __UI_SOURCE = [=====[--[[
-	UI: HUD element templates in the house style.
+	UI: HUD element templates copied from QM's Figma ("UI Templating" page,
+	file BWrUjODdJ2oWVUYsdkZxyt). Sizes below are the Figma pixel sizes; the
+	HUD's AutoScale shrinks everything to the screen.
 
-	FredokaOne everywhere, fully saturated colours (only the hue changes), a
-	black outline, QM's L-stud tile over every coloured face, white text with a
-	black stroke. Self-contained, so it also works at runtime as
-	ReplicatedStorage.UIKit:
+	Face style (every coloured element): flat fill, 12px corners, 3px outline
+	black at 50%, a shade gradient over the bottom, the stud texture tiled on
+	top. Text is FredokaOne, white, with a dark outline.
 
 	    local UIKit = require(game.ReplicatedStorage.UIKit)
-	    UIKit.squareButton({ Text = "Shop", Icon = "🛒", Hue = 0, Parent = frame })
-	    UIKit.rectButton({ Text = "x2 Wins", SubText = "99", Icon = "🏆", Hue = 50 })
-	    UIKit.counter({ Icon = "🏆", Text = "14.09K" })
-	    local modal, content = UIKit.modal({ Title = "Shop", Hue = 200 })
+	    UIKit.rectButton({ Text = "Shop", Icon = UIKit.Assets.Shop, Color = UIKit.Colors.Red })
+	    UIKit.squareButton({ Icon = UIKit.Assets.Aura, Color = UIKit.Colors.Purple })
+	    UIKit.counter({ Icon = UIKit.Assets.Trophy, Text = "5K", TextColor = UIKit.Colors.Gold })
+	    local bar = UIKit.progress({ Level = 80, Value = "1.2k/3.05k", Fill = 0.4 })
+	    UIKit.buyButton({ Text = "+10M", Color = UIKit.Colors.Yellow, Shade = UIKit.Colors.ShadeRed })
+	    local modal, content = UIKit.modal({ Title = "Shop" })
 
-	Icon is an emoji or an "rbxassetid://" image. Hue is 0..360.
 	Buttons with an "Opens" attribute toggle the modal of that name (see the
 	HUD's controller script); every modal's "Close" button hides it.
 ]]
@@ -27,16 +29,44 @@ local __UI_SOURCE = [=====[--[[
 local UI = {}
 
 UI.Font = Enum.Font.FredokaOne
-UI.StudImage = "rbxassetid://100359261064701"
-UI.StudTile = 26
-UI.StudTransparency = 0.55
-UI.Outline = Color3.new(0, 0, 0)
+UI.TextOutline = Color3.fromRGB(26, 16, 48)
 
-function UI.hue(h: number): Color3
-	return Color3.fromHSV((h % 360) / 360, 1, 1)
-end
+-- Uploaded from the Figma file (rbxassetid). Empty = not uploaded yet.
+UI.Assets = {
+	Studs = "", -- stud tile used by rect / progress / buy buttons (89.4px tile, 40%)
+	StudsSquare = "", -- stud texture on the square buttons (230px tile, 20%)
+	Shop = "", -- basket
+	Aura = "",
+	Pet = "",
+	Skill = "", -- small flexed arm
+	Trophy = "",
+	Rebirth = "",
+	Muscle = "", -- big flexed arm on the buy buttons
+}
+UI.FallbackStuds = "rbxassetid://100359261064701"
 
-local function new(class: string, props: { [string]: any }?, children: { Instance }?): any
+local rgb = Color3.fromRGB
+UI.Colors = {
+	Red = rgb(255, 0, 49), -- Shop
+	Purple = rgb(238, 0, 255), -- Auras square
+	Orange = rgb(255, 72, 0), -- Pets square
+	Blue = rgb(0, 212, 255), -- level bar
+	Yellow = rgb(255, 251, 0), -- +10M
+	BuyRed = rgb(255, 0, 0), -- +100M
+	Magenta = rgb(246, 0, 255), -- +1B
+	-- shade overlays (colour, opacity at the bottom)
+	ShadeBlack = rgb(0, 0, 0),
+	ShadeRed = rgb(255, 0, 0),
+	ShadeIndigo = rgb(64, 0, 255),
+	ShadeBlue = rgb(0, 30, 255),
+	-- text
+	Gold = rgb(255, 226, 143), -- trophy counter
+	Ice = rgb(220, 247, 255), -- rebirth counter
+	Cream = rgb(255, 223, 160), -- skill row
+	Track = rgb(255, 255, 255),
+}
+
+local function new(class: string, props: { [string]: any }?): any
 	local o = Instance.new(class)
 	local parent = nil
 	for k, v in props or {} do
@@ -46,240 +76,370 @@ local function new(class: string, props: { [string]: any }?, children: { Instanc
 			(o :: any)[k] = v
 		end
 	end
-	for _, c in children or {} do
-		c.Parent = o
-	end
 	o.Parent = parent
 	return o
 end
 
-local function corner(r: UDim?)
-	return new("UICorner", { CornerRadius = r or UDim.new(0.2, 0) })
+local function corner(parent: Instance, px: number?)
+	return new("UICorner", { CornerRadius = UDim.new(0, px or 12), Parent = parent })
 end
 
-local function stroke(thickness: number, border: boolean?)
-	return new("UIStroke", {
-		Thickness = thickness,
-		Color = UI.Outline,
-		LineJoinMode = Enum.LineJoinMode.Round,
-		ApplyStrokeMode = if border then Enum.ApplyStrokeMode.Border else Enum.ApplyStrokeMode.Contextual,
-	})
-end
-
--- White FredokaOne text with a black stroke
+-- White FredokaOne text with a dark outline. TextSize is the Figma size.
 function UI.text(props: { [string]: any })
+	local size = props.TextSize or 36
 	local t = new("TextLabel", {
 		Name = props.Name or "Label",
 		BackgroundTransparency = 1,
 		Font = UI.Font,
 		Text = props.Text or "",
 		TextColor3 = props.TextColor3 or Color3.new(1, 1, 1),
-		TextScaled = true,
+		TextSize = size,
 		TextXAlignment = props.TextXAlignment or Enum.TextXAlignment.Center,
+		TextYAlignment = Enum.TextYAlignment.Center,
 		Size = props.Size or UDim2.fromScale(1, 1),
 		Position = props.Position or UDim2.new(),
 		AnchorPoint = props.AnchorPoint or Vector2.zero,
-		ZIndex = props.ZIndex or 3,
+		ZIndex = props.ZIndex or 5,
 		Parent = props.Parent,
 	})
-	stroke(props.Stroke or 2.5).Parent = t
+	new("UIStroke", {
+		Thickness = props.Stroke or math.max(2, size / 14),
+		Color = UI.TextOutline,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Parent = t,
+	})
 	return t
 end
 
--- Emoji or image icon
-function UI.icon(icon: string?, props: { [string]: any })
-	local common = {
-		Name = "Icon",
+function UI.image(image: string?, props: { [string]: any })
+	return new("ImageLabel", {
+		Name = props.Name or "Icon",
 		BackgroundTransparency = 1,
+		Image = image or "",
+		ScaleType = Enum.ScaleType.Fit,
 		Size = props.Size,
-		Position = props.Position,
-		AnchorPoint = props.AnchorPoint or Vector2.new(0.5, 0.5),
-		ZIndex = 3,
+		Position = props.Position or UDim2.new(),
+		AnchorPoint = props.AnchorPoint or Vector2.zero,
+		ZIndex = props.ZIndex or 4,
 		Parent = props.Parent,
-	}
-	if icon and string.sub(icon, 1, 3) == "rbx" then
-		common.Image = icon
-		common.ScaleType = Enum.ScaleType.Fit
-		return new("ImageLabel", common)
-	end
-	common.Text = icon or ""
-	common.TextScaled = true
-	common.Font = UI.Font
-	common.TextColor3 = Color3.new(1, 1, 1)
-	return new("TextLabel", common)
+	})
 end
 
--- Coloured face: hue fill, soft top-to-bottom shade, black outline, L-studs
-function UI.face(f: GuiObject, color: Color3, radius: UDim?, outline: number?)
-	f.BackgroundColor3 = color
+--[[ The Figma face: fill + shade + studs + outline, on any GuiObject.
+	style: Color, Shade (colour), ShadeFrom (0..1, where the shade starts),
+	ShadeAlpha (opacity at the bottom), Studs (image), StudTile (px), StudAlpha ]]
+function UI.face(f: GuiObject, style)
+	f.BackgroundColor3 = style.Color
 	f.BackgroundTransparency = 0
 	f.BorderSizePixel = 0
-	corner(radius).Parent = f
-	stroke(outline or 3, true).Parent = f
-	new("UIGradient", {
-		Rotation = 90,
-		Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(200, 200, 200)),
-	}).Parent = f
-	local studs = new("ImageLabel", {
+	corner(f)
+	new("UIStroke", {
+		Thickness = 3,
+		Color = Color3.new(0, 0, 0),
+		Transparency = 0.5,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Parent = f,
+	})
+	local shade = new("Frame", {
+		Name = "Shade",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = style.Shade or UI.Colors.ShadeBlack,
+		BorderSizePixel = 0,
+		ZIndex = 2,
+		Parent = f,
+	})
+	corner(shade)
+	local from = style.ShadeFrom or 0.5
+	local alpha = style.ShadeAlpha or 0.2
+	local points = { NumberSequenceKeypoint.new(0, 1) }
+	if from > 0 then
+		table.insert(points, NumberSequenceKeypoint.new(from, 1))
+	end
+	table.insert(points, NumberSequenceKeypoint.new(1, 1 - alpha))
+	new("UIGradient", { Rotation = 90, Transparency = NumberSequence.new(points), Parent = shade })
+	local studs = style.Studs
+	if studs == nil or studs == "" then
+		studs = UI.FallbackStuds
+	end
+	local tile = style.StudTile or 89.4
+	local s = new("ImageLabel", {
 		Name = "Studs",
 		BackgroundTransparency = 1,
 		Size = UDim2.fromScale(1, 1),
-		Image = UI.StudImage,
+		Image = studs,
 		ScaleType = Enum.ScaleType.Tile,
-		TileSize = UDim2.fromOffset(UI.StudTile, UI.StudTile),
-		ImageTransparency = UI.StudTransparency,
-		ZIndex = 2,
+		TileSize = UDim2.fromOffset(tile, tile),
+		ImageTransparency = 1 - (style.StudAlpha or 0.4),
+		ZIndex = 3,
+		Parent = f,
 	})
-	corner(radius).Parent = studs
-	studs.Parent = f
+	corner(s)
 	return f
 end
 
-local function button(name: string, size: UDim2, hue: number, radius: UDim?)
+local function button(name: string, w: number, h: number, style)
 	local b = new("TextButton", {
 		Name = name,
 		Text = "",
 		AutoButtonColor = false,
-		Size = size,
+		Size = UDim2.fromOffset(w, h),
 		ZIndex = 1,
 	})
-	UI.face(b, UI.hue(hue), radius)
-	-- the HUD controller tweens this for hover / press
-	new("UIScale", { Name = "PressScale" }).Parent = b
+	UI.face(b, style)
+	new("UIScale", { Name = "PressScale", Parent = b })
 	return b
 end
 
---[[ Square button: icon on top, label across the bottom edge.
-	opts: Name, Text, Icon, Hue, Size (px, default 96), Parent, Opens ]]
+local function finish(b: GuiObject, opts)
+	if opts.Opens then
+		b:SetAttribute("Opens", opts.Opens)
+	end
+	if opts.LayoutOrder then
+		b.LayoutOrder = opts.LayoutOrder
+	end
+	b.Parent = opts.Parent
+	return b
+end
+
+--[[ Rectangle button (Figma RectangleButton, 284x96): icon + label.
+	opts: Name, Text, Icon, Color, Width, Parent, Opens ]]
+function UI.rectButton(opts)
+	local w = opts.Width or 284
+	local b = button(opts.Name or "RectangleButton", w, 96, { Color = opts.Color or UI.Colors.Red, Studs = UI.Assets.Studs })
+	-- icon 78px and label overlap by 12px; the pair is centred on the button
+	local content = new("Frame", {
+		Name = "Content",
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(w - 40, 78),
+		ZIndex = 4,
+		Parent = b,
+	})
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, -12),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = content,
+	})
+	local icon = UI.image(opts.Icon, { Parent = content, Size = UDim2.fromOffset(78, 78) })
+	icon.LayoutOrder = 1
+	local label = UI.text({ Name = "Label", Parent = content, Text = opts.Text or "Shop", TextSize = 36, Size = UDim2.fromOffset(0, 44) })
+	label.AutomaticSize = Enum.AutomaticSize.X
+	label.LayoutOrder = 2
+	return finish(b, opts)
+end
+
+--[[ Square button (Figma SquareButton, 128x128): one 96px icon, optional label.
+	opts: Name, Icon, Color, Text, Parent, Opens ]]
 function UI.squareButton(opts)
-	local s = opts.Size or 96
-	local b = button(opts.Name or "SquareButton", UDim2.fromOffset(s, s), opts.Hue or 0)
-	UI.icon(opts.Icon, { Parent = b, Size = UDim2.fromScale(0.7, 0.7), Position = UDim2.fromScale(0.5, 0.42) })
+	local b = button(opts.Name or "SquareButton", 128, 128, {
+		Color = opts.Color or UI.Colors.Purple,
+		Studs = UI.Assets.StudsSquare,
+		StudTile = 230,
+		StudAlpha = 0.2,
+	})
+	UI.image(opts.Icon, {
+		Parent = b,
+		Size = UDim2.fromOffset(96, 96),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+	})
 	if opts.Text and opts.Text ~= "" then
 		UI.text({
 			Parent = b,
 			Text = opts.Text,
-			Size = UDim2.fromScale(1.05, 0.3),
-			Position = UDim2.fromScale(0.5, 0.98),
+			TextSize = 30,
+			Size = UDim2.new(1, 0, 0, 36),
+			Position = UDim2.new(0.5, 0, 1, 2),
 			AnchorPoint = Vector2.new(0.5, 1),
 		})
 	end
-	if opts.Opens then
-		b:SetAttribute("Opens", opts.Opens)
-	end
-	b.Parent = opts.Parent
-	return b
+	return finish(b, opts)
 end
 
---[[ Rectangle button: icon on the left, title (and optional subtitle) on the right.
-	opts: Name, Text, SubText, Icon, Hue, Size (UDim2, default 240x80), Parent, Opens ]]
-function UI.rectButton(opts)
-	local b = button(opts.Name or "RectButton", opts.Size or UDim2.fromOffset(240, 80), opts.Hue or 200, UDim.new(0.22, 0))
-	UI.icon(opts.Icon, { Parent = b, Size = UDim2.fromScale(0.3, 1.05), Position = UDim2.fromScale(0.17, 0.5) })
-	local hasSub = opts.SubText ~= nil and opts.SubText ~= ""
-	UI.text({
-		Name = "Title",
-		Parent = b,
-		Text = opts.Text or "Button",
-		Size = UDim2.fromScale(0.64, if hasSub then 0.5 else 0.62),
-		Position = UDim2.fromScale(0.33, if hasSub then 0.08 else 0.19),
-	})
-	if hasSub then
-		UI.text({
-			Name = "SubText",
-			Parent = b,
-			Text = opts.SubText,
-			Size = UDim2.fromScale(0.64, 0.34),
-			Position = UDim2.fromScale(0.33, 0.58),
-			TextColor3 = UI.hue(opts.SubHue or 120),
-		})
-	end
-	if opts.Opens then
-		b:SetAttribute("Opens", opts.Opens)
-	end
-	b.Parent = opts.Parent
-	return b
-end
-
---[[ Counter: icon + value on a dark pill.
-	opts: Name, Icon, Text, Size (UDim2, default 200x54), Parent
-	Set counter.Value.Text to update it. ]]
+--[[ Counter (Figma Counter): 61px icon + 36px amount, no background.
+	opts: Name, Icon, Text, TextColor, Parent. Update counter.Amount.Text. ]]
 function UI.counter(opts)
 	local f = new("Frame", {
 		Name = opts.Name or "Counter",
-		Size = opts.Size or UDim2.fromOffset(200, 54),
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.45,
-		BorderSizePixel = 0,
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(0, 61),
+		AutomaticSize = Enum.AutomaticSize.X,
 	})
-	corner(UDim.new(0.5, 0)).Parent = f
-	UI.icon(opts.Icon, { Parent = f, Size = UDim2.fromScale(0.3, 1.2), Position = UDim2.fromScale(0.14, 0.5) })
-	UI.text({
-		Name = "Value",
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 8),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = f,
+	})
+	local icon = UI.image(opts.Icon, { Parent = f, Size = UDim2.fromOffset(61, 61) })
+	icon.LayoutOrder = 1
+	local amount = UI.text({
+		Name = "Amount",
 		Parent = f,
 		Text = opts.Text or "0",
-		Size = UDim2.fromScale(0.66, 0.72),
-		Position = UDim2.fromScale(0.3, 0.14),
+		TextSize = opts.TextSize or 36,
+		TextColor3 = opts.TextColor or UI.Colors.Gold,
+		Size = UDim2.fromOffset(0, 44),
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Stroke = 3,
 	})
-	f.Parent = opts.Parent
-	return f
+	amount.AutomaticSize = Enum.AutomaticSize.X
+	amount.LayoutOrder = 2
+	return finish(f, opts)
 end
 
---[[ Modal: a general popup (shop, inventory, rebirth...).
-	opts: Name, Title, Hue, Visible, Parent
-	Returns the modal frame and its Content scrolling frame (a UIGridLayout is
-	inside; drop cards in, or swap the layout). ]]
+--[[ Level progress (Figma Progress, 576 wide): skill row on top, bar below.
+	opts: Name, Skill, Multiplier, Level, Value, Fill (0..1), Parent.
+	Children to update: SkillRow.SkillLabel, SkillRow.Multi, Bar.Level, Bar.Value,
+	Bar.Fill (Size.X.Scale = progress). ]]
+function UI.progress(opts)
+	local f = new("Frame", {
+		Name = opts.Name or "Progress",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(576, 155),
+	})
+	local row = new("Frame", { Name = "SkillRow", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 48), Parent = f })
+	UI.image(UI.Assets.Skill, { Parent = row, Size = UDim2.fromOffset(48, 48) })
+	UI.text({
+		Name = "SkillLabel",
+		Parent = row,
+		Text = (opts.Skill or "1.2M") .. "  SKILL",
+		TextSize = 32,
+		TextColor3 = UI.Colors.Cream,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(54, 9),
+		Size = UDim2.new(0.5, 0, 0, 39),
+	})
+	UI.text({
+		Name = "Multi",
+		Parent = row,
+		Text = (opts.Multiplier or "7x") .. " Multiplier",
+		TextSize = 32,
+		TextColor3 = UI.Colors.Cream,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 9),
+		Size = UDim2.new(0.5, 0, 0, 39),
+	})
+	-- the bar: a white studded track with the blue Figma face as the fill
+	local bar = new("Frame", { Name = "Bar", Position = UDim2.fromOffset(0, 59), Size = UDim2.new(1, 0, 0, 96), Parent = f })
+	UI.face(bar, { Color = UI.Colors.Track, Shade = UI.Colors.ShadeBlack, ShadeFrom = 0.5, ShadeAlpha = 0.15, Studs = UI.Assets.Studs })
+	local fill = new("Frame", {
+		Name = "Fill",
+		Size = UDim2.fromScale(math.clamp(opts.Fill or 1, 0, 1), 1),
+		ZIndex = 4,
+		Parent = bar,
+	})
+	UI.face(fill, { Color = UI.Colors.Blue, Shade = UI.Colors.ShadeBlue, ShadeFrom = 0, ShadeAlpha = 0.4, Studs = UI.Assets.Studs })
+	UI.text({
+		Name = "Level",
+		Parent = bar,
+		Text = "Level " .. tostring(opts.Level or 80),
+		TextSize = 48,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(22, 16),
+		Size = UDim2.new(0.5, -22, 0, 58),
+		ZIndex = 6,
+	})
+	UI.text({
+		Name = "Value",
+		Parent = bar,
+		Text = opts.Value or "1.2k/3.05k",
+		TextSize = 48,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -15, 0, 16),
+		Size = UDim2.new(0.5, -15, 0, 58),
+		ZIndex = 6,
+	})
+	return finish(f, opts)
+end
+
+--[[ Buy button (Figma BuyProgress, 181x96): arm icon popping out the top, big label.
+	opts: Name, Text, Color, Shade, Price, Width, Parent ]]
+function UI.buyButton(opts)
+	local w = opts.Width or 181.33
+	local b = button(opts.Name or "BuyButton", w, 96, {
+		Color = opts.Color or UI.Colors.Yellow,
+		Shade = opts.Shade or UI.Colors.ShadeRed,
+		ShadeFrom = 0,
+		ShadeAlpha = 0.4,
+		Studs = UI.Assets.Studs,
+	})
+	UI.image(UI.Assets.Muscle, {
+		Parent = b,
+		Size = UDim2.fromOffset(96, 96),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, -15),
+	})
+	UI.text({
+		Name = "Label",
+		Parent = b,
+		Text = opts.Text or "+10M",
+		TextSize = 48,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 38),
+		Size = UDim2.new(1, 0, 0, 58),
+	})
+	if opts.Price then
+		UI.text({
+			Name = "Price",
+			Parent = b,
+			Text = opts.Price,
+			TextSize = 22,
+			TextColor3 = rgb(140, 255, 120),
+			TextXAlignment = Enum.TextXAlignment.Right,
+			AnchorPoint = Vector2.new(1, 1),
+			Position = UDim2.new(1, -8, 1, -2),
+			Size = UDim2.fromOffset(60, 26),
+		})
+	end
+	return finish(b, opts)
+end
+
+--[[ Modal: a general popup (shop, inventory, rebirth...) in the same face style.
+	opts: Name, Title, Color, Visible, Parent. Returns the modal and its Content
+	scrolling frame (a UIGridLayout is inside). ]]
 function UI.modal(opts)
 	local m = new("Frame", {
 		Name = opts.Name or "Modal",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.52),
-		-- fits two rows of 150 px cards; the Content frame scrolls past that
-		Size = UDim2.fromOffset(760, 440),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(860, 560),
 		Visible = opts.Visible ~= false,
 		ZIndex = 10,
 	})
-	UI.face(m, UI.hue(opts.Hue or 200), UDim.new(0, 22), 4)
+	UI.face(m, { Color = opts.Color or UI.Colors.Blue, Shade = UI.Colors.ShadeBlue, ShadeFrom = 0, ShadeAlpha = 0.4, Studs = UI.Assets.Studs })
 	UI.text({
 		Name = "Title",
 		Parent = m,
 		Text = opts.Title or "Shop",
-		Size = UDim2.fromOffset(420, 70),
-		Position = UDim2.fromOffset(24, 0),
-		AnchorPoint = Vector2.new(0, 0.5),
+		TextSize = 64,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Stroke = 5,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromOffset(28, 4),
+		Size = UDim2.fromOffset(480, 80),
 	})
-	local close = UI.squareButton({ Name = "Close", Icon = "✖", Hue = 0, Size = 64, Parent = m })
+	local close = button("Close", 72, 72, { Color = UI.Colors.Red, Studs = UI.Assets.Studs })
 	close.AnchorPoint = Vector2.new(0.5, 0.5)
-	close.Position = UDim2.new(1, -12, 0, 10)
-	-- a bold white X reads better than the ✖ emoji, which renders dark
-	local x = close:FindFirstChild("Icon")
-	if x then
-		x.Parent = nil
-	end
-	UI.text({
-		Name = "Icon",
-		Parent = close,
-		Text = "X",
-		Size = UDim2.fromScale(0.62, 0.62),
-		Position = UDim2.fromScale(0.5, 0.5),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Stroke = 3,
-	})
+	close.Position = UDim2.new(1, -14, 0, 14)
+	UI.text({ Name = "X", Parent = close, Text = "X", TextSize = 48 })
+	close.Parent = m
 	local body = new("Frame", {
 		Name = "Body",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -22),
-		Size = UDim2.new(1, -44, 1, -86),
+		Position = UDim2.new(0.5, 0, 1, -24),
+		Size = UDim2.new(1, -48, 1, -96),
 		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.72,
-		ZIndex = 3,
+		BackgroundTransparency = 0.75,
+		ZIndex = 4,
 		Parent = m,
 	})
-	corner(UDim.new(0, 16)).Parent = body
+	corner(body)
 	local content = new("ScrollingFrame", {
 		Name = "Content",
 		Size = UDim2.fromScale(1, 1),
@@ -289,54 +449,25 @@ function UI.modal(opts)
 		ScrollBarImageColor3 = Color3.new(1, 1, 1),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		CanvasSize = UDim2.new(),
-		ZIndex = 4,
+		ZIndex = 5,
 		Parent = body,
 	})
 	new("UIPadding", {
-		PaddingTop = UDim.new(0, 16),
-		PaddingBottom = UDim.new(0, 16),
-		PaddingLeft = UDim.new(0, 16),
-		PaddingRight = UDim.new(0, 16),
+		PaddingTop = UDim.new(0, 20),
+		PaddingBottom = UDim.new(0, 20),
+		PaddingLeft = UDim.new(0, 20),
+		PaddingRight = UDim.new(0, 20),
 		Parent = content,
 	})
 	new("UIGridLayout", {
-		CellSize = UDim2.fromOffset(150, 150),
-		CellPadding = UDim2.fromOffset(16, 16),
+		CellSize = UDim2.fromOffset(128, 128),
+		CellPadding = UDim2.fromOffset(28, 28),
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = content,
 	})
 	m.Parent = opts.Parent
 	return m, content
-end
-
---[[ Shop / inventory card for a modal: square button with a price under the label.
-	opts: Name, Text, Icon, Hue, Price, Parent ]]
-function UI.card(opts)
-	local c = UI.squareButton({ Name = opts.Name or "Card", Text = opts.Text, Icon = opts.Icon, Hue = opts.Hue, Size = 150 })
-	local icon = c:FindFirstChild("Icon")
-	if icon then
-		icon.Size = UDim2.fromScale(0.56, 0.56)
-		icon.Position = UDim2.fromScale(0.5, 0.36)
-	end
-	local label = c:FindFirstChild("Label")
-	if label then
-		label.Size = UDim2.fromScale(0.95, 0.2)
-		label.Position = UDim2.fromScale(0.5, 0.82)
-	end
-	if opts.Price then
-		UI.text({
-			Name = "Price",
-			Parent = c,
-			Text = opts.Price,
-			Size = UDim2.fromScale(0.9, 0.18),
-			Position = UDim2.fromScale(0.5, 0.99),
-			AnchorPoint = Vector2.new(0.5, 1),
-			TextColor3 = UI.hue(120),
-		})
-	end
-	c.Parent = opts.Parent
-	return c
 end
 
 -- LocalScript placed in the demo HUD: scales the HUD to the screen, animates
@@ -346,10 +477,11 @@ local TweenService = game:GetService("TweenService")
 local gui = script.Parent
 local camera = workspace.CurrentCamera
 
+-- the layout is drawn at Figma size for a 1200px-tall screen
 local autoScale = gui:FindFirstChild("AutoScale")
 local function rescale()
 	if autoScale then
-		autoScale.Scale = math.clamp(camera.ViewportSize.Y / 820, 0.55, 1.3)
+		autoScale.Scale = math.clamp(camera.ViewportSize.Y / 1200, 0.4, 1.2)
 	end
 end
 camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
@@ -391,8 +523,10 @@ end
 gui.DescendantAdded:Connect(hook)
 ]]
 
--- A HUD laid out with every template, as a starting point for each game.
+-- The HUD, laid out like QM's reference: Shop + square grid at the left,
+-- counters bottom-left, skill/level bar with the three buy buttons bottom-centre.
 function UI.buildHUD(parent: Instance, modalVisible: boolean?)
+	local A, C = UI.Assets, UI.Colors
 	local old = parent:FindFirstChild("HUD")
 	if old then
 		old.Parent = nil
@@ -404,88 +538,81 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 	})
 	new("UIScale", { Name = "AutoScale", Parent = gui })
 
-	-- left: counters over a 2-wide grid of square buttons
+	-- left: Shop over a 2-wide grid of square buttons (same 284 width)
 	local left = new("Frame", {
 		Name = "Left",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 20, 0.5, 0),
-		Size = UDim2.fromOffset(212, 470),
+		Position = UDim2.new(0, 28, 0.42, 0),
+		Size = UDim2.fromOffset(284, 96 + 28 + 128),
 		Parent = gui,
 	})
-	new("UIListLayout", { Padding = UDim.new(0, 12), SortOrder = Enum.SortOrder.LayoutOrder, Parent = left })
-	local c1 = UI.counter({ Name = "Rebirths", Icon = "🔁", Text = "2", Parent = left })
-	c1.LayoutOrder = 1
-	local c2 = UI.counter({ Name = "Wins", Icon = "🏆", Text = "14.09K", Parent = left })
-	c2.LayoutOrder = 2
-	local grid = new("Frame", {
-		Name = "Buttons",
-		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(212, 330),
-		LayoutOrder = 3,
-		Parent = left,
-	})
+	new("UIListLayout", { Padding = UDim.new(0, 28), SortOrder = Enum.SortOrder.LayoutOrder, Parent = left })
+	UI.rectButton({ Name = "Shop", Text = "Shop", Icon = A.Shop, Color = C.Red, Opens = "ShopModal", LayoutOrder = 1, Parent = left })
+	local grid = new("Frame", { Name = "Buttons", BackgroundTransparency = 1, Size = UDim2.fromOffset(284, 128), LayoutOrder = 2, Parent = left })
 	new("UIGridLayout", {
-		CellSize = UDim2.fromOffset(96, 96),
-		CellPadding = UDim2.fromOffset(14, 14),
+		CellSize = UDim2.fromOffset(128, 128),
+		CellPadding = UDim2.fromOffset(28, 28),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = grid,
 	})
-	local squares = {
-		{ "Shop", "🛒", 0, "ShopModal" },
-		{ "Rebirth", "🔁", 200 },
-		{ "Pets", "🐾", 30 },
-		{ "Auras", "✨", 285 },
-		{ "Trails", "💫", 260 },
-		{ "Gifts", "🎁", 330 },
-	}
-	for i, s in squares do
-		local b = UI.squareButton({ Name = s[1], Text = s[1], Icon = s[2], Hue = s[3], Opens = s[4], Parent = grid })
-		b.LayoutOrder = i
-	end
+	UI.squareButton({ Name = "Auras", Icon = A.Aura, Color = C.Purple, LayoutOrder = 1, Parent = grid })
+	UI.squareButton({ Name = "Pets", Icon = A.Pet, Color = C.Orange, LayoutOrder = 2, Parent = grid })
 
-	-- right: rectangle buttons
-	local right = new("Frame", {
-		Name = "Right",
+	-- bottom-left: counters
+	local counters = new("Frame", {
+		Name = "Counters",
 		BackgroundTransparency = 1,
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -20, 0.5, 0),
-		Size = UDim2.fromOffset(240, 280),
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 28, 1, -28),
+		Size = UDim2.fromOffset(284, 61 * 2 + 26),
 		Parent = gui,
 	})
-	new("UIListLayout", { Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder, Parent = right })
-	local rects = {
-		{ "x1.5 Skill", "1", "⚡", 30 },
-		{ "x2 Wins", "99", "🏆", 50 },
-		{ "Auto Throw", "79", "🎯", 200 },
-	}
-	for i, r in rects do
-		local b = UI.rectButton({ Name = r[1], Text = r[1], SubText = r[2], Icon = r[3], Hue = r[4], Parent = right })
-		b.LayoutOrder = i
-	end
+	new("UIListLayout", { Padding = UDim.new(0, 26), SortOrder = Enum.SortOrder.LayoutOrder, Parent = counters })
+	UI.counter({ Name = "Rebirths", Icon = A.Rebirth, Text = "2", TextColor = C.Ice, LayoutOrder = 1, Parent = counters })
+	UI.counter({ Name = "Wins", Icon = A.Trophy, Text = "5K", TextColor = C.Gold, LayoutOrder = 2, Parent = counters })
 
-	-- bottom centre: skill counter
-	local skill = UI.counter({ Name = "Skill", Icon = "⚡", Text = "1.23K", Parent = gui })
-	skill.AnchorPoint = Vector2.new(0.5, 1)
-	skill.Position = UDim2.new(0.5, 0, 1, -24)
+	-- bottom-centre: skill + level bar, buy buttons under it
+	local bottom = new("Frame", {
+		Name = "Bottom",
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -24),
+		Size = UDim2.fromOffset(577, 155 + 22 + 96),
+		Parent = gui,
+	})
+	UI.progress({ Name = "Progress", Skill = "1.2M", Multiplier = "7x", Level = 80, Value = "1.2k/3.05k", Fill = 0.39, Parent = bottom })
+	local buys = new("Frame", {
+		Name = "Buy",
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, 96),
+		Parent = bottom,
+	})
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Padding = UDim.new(0, 16),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = buys,
+	})
+	UI.buyButton({ Name = "Buy10M", Text = "+10M", Color = C.Yellow, Shade = C.ShadeRed, LayoutOrder = 1, Parent = buys })
+	UI.buyButton({ Name = "Buy100M", Text = "+100M", Color = C.BuyRed, Shade = C.ShadeIndigo, LayoutOrder = 2, Parent = buys })
+	UI.buyButton({ Name = "Buy1B", Text = "+1B", Color = C.Magenta, Shade = C.ShadeIndigo, LayoutOrder = 3, Parent = buys })
 
-	-- the general modal, here as a shop
-	local modal, content = UI.modal({ Name = "ShopModal", Title = "Shop", Hue = 200, Visible = modalVisible == true, Parent = gui })
+	-- the general modal, here as the shop
+	local _, content = UI.modal({ Name = "ShopModal", Title = "Shop", Visible = modalVisible == true, Parent = gui })
 	local items = {
-		{ "Sword", "🗡️", 0, "50" },
-		{ "Bat", "🏏", 30, "120" },
-		{ "Hammer", "🔨", 55, "300" },
-		{ "Rocket", "🚀", 200, "900" },
-		{ "Magnet", "🧲", 285, "2K" },
-		{ "Bomb", "💣", 330, "5K" },
-		{ "Star", "⭐", 175, "10K" },
-		{ "Crown", "👑", 120, "50K" },
+		{ "Auras", A.Aura, C.Purple },
+		{ "Pets", A.Pet, C.Orange },
+		{ "Wins", A.Trophy, C.Yellow },
+		{ "Rebirth", A.Rebirth, C.Blue },
+		{ "Skill", A.Muscle, C.Magenta },
 	}
 	for i, it in items do
-		local c = UI.card({ Name = it[1], Text = it[1], Icon = it[2], Hue = it[3], Price = it[4], Parent = content })
-		c.LayoutOrder = i
+		UI.squareButton({ Name = it[1], Icon = it[2], Color = it[3], LayoutOrder = i, Parent = content })
 	end
-	modal.ZIndex = 10
 
 	local controller = Instance.new("LocalScript")
 	controller.Name = "HUDController"
@@ -498,16 +625,18 @@ end
 
 -- Bare templates to :Clone() from code (ReplicatedStorage.UITemplates).
 function UI.buildTemplates(parent: Instance)
+	local A, C = UI.Assets, UI.Colors
 	local old = parent:FindFirstChild("UITemplates")
 	if old then
 		old.Parent = nil
 	end
 	local folder = new("Folder", { Name = "UITemplates" })
-	UI.squareButton({ Name = "SquareButton", Text = "Button", Icon = "⭐", Hue = 0, Parent = folder })
-	UI.rectButton({ Name = "RectButton", Text = "Button", SubText = "99", Icon = "⭐", Hue = 200, Parent = folder })
-	UI.counter({ Name = "Counter", Icon = "🏆", Text = "0", Parent = folder })
-	UI.modal({ Name = "Modal", Title = "Title", Hue = 200, Parent = folder })
-	UI.card({ Name = "Card", Text = "Item", Icon = "⭐", Hue = 50, Price = "10", Parent = folder })
+	UI.rectButton({ Name = "RectangleButton", Text = "Shop", Icon = A.Shop, Color = C.Red, Parent = folder })
+	UI.squareButton({ Name = "SquareButton", Icon = A.Aura, Color = C.Purple, Parent = folder })
+	UI.counter({ Name = "Counter", Icon = A.Trophy, Text = "5K", Parent = folder })
+	UI.progress({ Name = "Progress", Parent = folder })
+	UI.buyButton({ Name = "BuyButton", Text = "+10M", Parent = folder })
+	UI.modal({ Name = "Modal", Title = "Title", Parent = folder })
 	folder.Parent = parent
 	return folder
 end
@@ -1110,20 +1239,22 @@ end
 
 __modules["UI"] = function()
 --[[
-	UI: HUD element templates in the house style.
+	UI: HUD element templates copied from QM's Figma ("UI Templating" page,
+	file BWrUjODdJ2oWVUYsdkZxyt). Sizes below are the Figma pixel sizes; the
+	HUD's AutoScale shrinks everything to the screen.
 
-	FredokaOne everywhere, fully saturated colours (only the hue changes), a
-	black outline, QM's L-stud tile over every coloured face, white text with a
-	black stroke. Self-contained, so it also works at runtime as
-	ReplicatedStorage.UIKit:
+	Face style (every coloured element): flat fill, 12px corners, 3px outline
+	black at 50%, a shade gradient over the bottom, the stud texture tiled on
+	top. Text is FredokaOne, white, with a dark outline.
 
 	    local UIKit = require(game.ReplicatedStorage.UIKit)
-	    UIKit.squareButton({ Text = "Shop", Icon = "🛒", Hue = 0, Parent = frame })
-	    UIKit.rectButton({ Text = "x2 Wins", SubText = "99", Icon = "🏆", Hue = 50 })
-	    UIKit.counter({ Icon = "🏆", Text = "14.09K" })
-	    local modal, content = UIKit.modal({ Title = "Shop", Hue = 200 })
+	    UIKit.rectButton({ Text = "Shop", Icon = UIKit.Assets.Shop, Color = UIKit.Colors.Red })
+	    UIKit.squareButton({ Icon = UIKit.Assets.Aura, Color = UIKit.Colors.Purple })
+	    UIKit.counter({ Icon = UIKit.Assets.Trophy, Text = "5K", TextColor = UIKit.Colors.Gold })
+	    local bar = UIKit.progress({ Level = 80, Value = "1.2k/3.05k", Fill = 0.4 })
+	    UIKit.buyButton({ Text = "+10M", Color = UIKit.Colors.Yellow, Shade = UIKit.Colors.ShadeRed })
+	    local modal, content = UIKit.modal({ Title = "Shop" })
 
-	Icon is an emoji or an "rbxassetid://" image. Hue is 0..360.
 	Buttons with an "Opens" attribute toggle the modal of that name (see the
 	HUD's controller script); every modal's "Close" button hides it.
 ]]
@@ -1131,16 +1262,44 @@ __modules["UI"] = function()
 local UI = {}
 
 UI.Font = Enum.Font.FredokaOne
-UI.StudImage = "rbxassetid://100359261064701"
-UI.StudTile = 26
-UI.StudTransparency = 0.55
-UI.Outline = Color3.new(0, 0, 0)
+UI.TextOutline = Color3.fromRGB(26, 16, 48)
 
-function UI.hue(h: number): Color3
-	return Color3.fromHSV((h % 360) / 360, 1, 1)
-end
+-- Uploaded from the Figma file (rbxassetid). Empty = not uploaded yet.
+UI.Assets = {
+	Studs = "", -- stud tile used by rect / progress / buy buttons (89.4px tile, 40%)
+	StudsSquare = "", -- stud texture on the square buttons (230px tile, 20%)
+	Shop = "", -- basket
+	Aura = "",
+	Pet = "",
+	Skill = "", -- small flexed arm
+	Trophy = "",
+	Rebirth = "",
+	Muscle = "", -- big flexed arm on the buy buttons
+}
+UI.FallbackStuds = "rbxassetid://100359261064701"
 
-local function new(class: string, props: { [string]: any }?, children: { Instance }?): any
+local rgb = Color3.fromRGB
+UI.Colors = {
+	Red = rgb(255, 0, 49), -- Shop
+	Purple = rgb(238, 0, 255), -- Auras square
+	Orange = rgb(255, 72, 0), -- Pets square
+	Blue = rgb(0, 212, 255), -- level bar
+	Yellow = rgb(255, 251, 0), -- +10M
+	BuyRed = rgb(255, 0, 0), -- +100M
+	Magenta = rgb(246, 0, 255), -- +1B
+	-- shade overlays (colour, opacity at the bottom)
+	ShadeBlack = rgb(0, 0, 0),
+	ShadeRed = rgb(255, 0, 0),
+	ShadeIndigo = rgb(64, 0, 255),
+	ShadeBlue = rgb(0, 30, 255),
+	-- text
+	Gold = rgb(255, 226, 143), -- trophy counter
+	Ice = rgb(220, 247, 255), -- rebirth counter
+	Cream = rgb(255, 223, 160), -- skill row
+	Track = rgb(255, 255, 255),
+}
+
+local function new(class: string, props: { [string]: any }?): any
 	local o = Instance.new(class)
 	local parent = nil
 	for k, v in props or {} do
@@ -1150,240 +1309,370 @@ local function new(class: string, props: { [string]: any }?, children: { Instanc
 			(o :: any)[k] = v
 		end
 	end
-	for _, c in children or {} do
-		c.Parent = o
-	end
 	o.Parent = parent
 	return o
 end
 
-local function corner(r: UDim?)
-	return new("UICorner", { CornerRadius = r or UDim.new(0.2, 0) })
+local function corner(parent: Instance, px: number?)
+	return new("UICorner", { CornerRadius = UDim.new(0, px or 12), Parent = parent })
 end
 
-local function stroke(thickness: number, border: boolean?)
-	return new("UIStroke", {
-		Thickness = thickness,
-		Color = UI.Outline,
-		LineJoinMode = Enum.LineJoinMode.Round,
-		ApplyStrokeMode = if border then Enum.ApplyStrokeMode.Border else Enum.ApplyStrokeMode.Contextual,
-	})
-end
-
--- White FredokaOne text with a black stroke
+-- White FredokaOne text with a dark outline. TextSize is the Figma size.
 function UI.text(props: { [string]: any })
+	local size = props.TextSize or 36
 	local t = new("TextLabel", {
 		Name = props.Name or "Label",
 		BackgroundTransparency = 1,
 		Font = UI.Font,
 		Text = props.Text or "",
 		TextColor3 = props.TextColor3 or Color3.new(1, 1, 1),
-		TextScaled = true,
+		TextSize = size,
 		TextXAlignment = props.TextXAlignment or Enum.TextXAlignment.Center,
+		TextYAlignment = Enum.TextYAlignment.Center,
 		Size = props.Size or UDim2.fromScale(1, 1),
 		Position = props.Position or UDim2.new(),
 		AnchorPoint = props.AnchorPoint or Vector2.zero,
-		ZIndex = props.ZIndex or 3,
+		ZIndex = props.ZIndex or 5,
 		Parent = props.Parent,
 	})
-	stroke(props.Stroke or 2.5).Parent = t
+	new("UIStroke", {
+		Thickness = props.Stroke or math.max(2, size / 14),
+		Color = UI.TextOutline,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Parent = t,
+	})
 	return t
 end
 
--- Emoji or image icon
-function UI.icon(icon: string?, props: { [string]: any })
-	local common = {
-		Name = "Icon",
+function UI.image(image: string?, props: { [string]: any })
+	return new("ImageLabel", {
+		Name = props.Name or "Icon",
 		BackgroundTransparency = 1,
+		Image = image or "",
+		ScaleType = Enum.ScaleType.Fit,
 		Size = props.Size,
-		Position = props.Position,
-		AnchorPoint = props.AnchorPoint or Vector2.new(0.5, 0.5),
-		ZIndex = 3,
+		Position = props.Position or UDim2.new(),
+		AnchorPoint = props.AnchorPoint or Vector2.zero,
+		ZIndex = props.ZIndex or 4,
 		Parent = props.Parent,
-	}
-	if icon and string.sub(icon, 1, 3) == "rbx" then
-		common.Image = icon
-		common.ScaleType = Enum.ScaleType.Fit
-		return new("ImageLabel", common)
-	end
-	common.Text = icon or ""
-	common.TextScaled = true
-	common.Font = UI.Font
-	common.TextColor3 = Color3.new(1, 1, 1)
-	return new("TextLabel", common)
+	})
 end
 
--- Coloured face: hue fill, soft top-to-bottom shade, black outline, L-studs
-function UI.face(f: GuiObject, color: Color3, radius: UDim?, outline: number?)
-	f.BackgroundColor3 = color
+--[[ The Figma face: fill + shade + studs + outline, on any GuiObject.
+	style: Color, Shade (colour), ShadeFrom (0..1, where the shade starts),
+	ShadeAlpha (opacity at the bottom), Studs (image), StudTile (px), StudAlpha ]]
+function UI.face(f: GuiObject, style)
+	f.BackgroundColor3 = style.Color
 	f.BackgroundTransparency = 0
 	f.BorderSizePixel = 0
-	corner(radius).Parent = f
-	stroke(outline or 3, true).Parent = f
-	new("UIGradient", {
-		Rotation = 90,
-		Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(200, 200, 200)),
-	}).Parent = f
-	local studs = new("ImageLabel", {
+	corner(f)
+	new("UIStroke", {
+		Thickness = 3,
+		Color = Color3.new(0, 0, 0),
+		Transparency = 0.5,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Parent = f,
+	})
+	local shade = new("Frame", {
+		Name = "Shade",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = style.Shade or UI.Colors.ShadeBlack,
+		BorderSizePixel = 0,
+		ZIndex = 2,
+		Parent = f,
+	})
+	corner(shade)
+	local from = style.ShadeFrom or 0.5
+	local alpha = style.ShadeAlpha or 0.2
+	local points = { NumberSequenceKeypoint.new(0, 1) }
+	if from > 0 then
+		table.insert(points, NumberSequenceKeypoint.new(from, 1))
+	end
+	table.insert(points, NumberSequenceKeypoint.new(1, 1 - alpha))
+	new("UIGradient", { Rotation = 90, Transparency = NumberSequence.new(points), Parent = shade })
+	local studs = style.Studs
+	if studs == nil or studs == "" then
+		studs = UI.FallbackStuds
+	end
+	local tile = style.StudTile or 89.4
+	local s = new("ImageLabel", {
 		Name = "Studs",
 		BackgroundTransparency = 1,
 		Size = UDim2.fromScale(1, 1),
-		Image = UI.StudImage,
+		Image = studs,
 		ScaleType = Enum.ScaleType.Tile,
-		TileSize = UDim2.fromOffset(UI.StudTile, UI.StudTile),
-		ImageTransparency = UI.StudTransparency,
-		ZIndex = 2,
+		TileSize = UDim2.fromOffset(tile, tile),
+		ImageTransparency = 1 - (style.StudAlpha or 0.4),
+		ZIndex = 3,
+		Parent = f,
 	})
-	corner(radius).Parent = studs
-	studs.Parent = f
+	corner(s)
 	return f
 end
 
-local function button(name: string, size: UDim2, hue: number, radius: UDim?)
+local function button(name: string, w: number, h: number, style)
 	local b = new("TextButton", {
 		Name = name,
 		Text = "",
 		AutoButtonColor = false,
-		Size = size,
+		Size = UDim2.fromOffset(w, h),
 		ZIndex = 1,
 	})
-	UI.face(b, UI.hue(hue), radius)
-	-- the HUD controller tweens this for hover / press
-	new("UIScale", { Name = "PressScale" }).Parent = b
+	UI.face(b, style)
+	new("UIScale", { Name = "PressScale", Parent = b })
 	return b
 end
 
---[[ Square button: icon on top, label across the bottom edge.
-	opts: Name, Text, Icon, Hue, Size (px, default 96), Parent, Opens ]]
+local function finish(b: GuiObject, opts)
+	if opts.Opens then
+		b:SetAttribute("Opens", opts.Opens)
+	end
+	if opts.LayoutOrder then
+		b.LayoutOrder = opts.LayoutOrder
+	end
+	b.Parent = opts.Parent
+	return b
+end
+
+--[[ Rectangle button (Figma RectangleButton, 284x96): icon + label.
+	opts: Name, Text, Icon, Color, Width, Parent, Opens ]]
+function UI.rectButton(opts)
+	local w = opts.Width or 284
+	local b = button(opts.Name or "RectangleButton", w, 96, { Color = opts.Color or UI.Colors.Red, Studs = UI.Assets.Studs })
+	-- icon 78px and label overlap by 12px; the pair is centred on the button
+	local content = new("Frame", {
+		Name = "Content",
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(w - 40, 78),
+		ZIndex = 4,
+		Parent = b,
+	})
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, -12),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = content,
+	})
+	local icon = UI.image(opts.Icon, { Parent = content, Size = UDim2.fromOffset(78, 78) })
+	icon.LayoutOrder = 1
+	local label = UI.text({ Name = "Label", Parent = content, Text = opts.Text or "Shop", TextSize = 36, Size = UDim2.fromOffset(0, 44) })
+	label.AutomaticSize = Enum.AutomaticSize.X
+	label.LayoutOrder = 2
+	return finish(b, opts)
+end
+
+--[[ Square button (Figma SquareButton, 128x128): one 96px icon, optional label.
+	opts: Name, Icon, Color, Text, Parent, Opens ]]
 function UI.squareButton(opts)
-	local s = opts.Size or 96
-	local b = button(opts.Name or "SquareButton", UDim2.fromOffset(s, s), opts.Hue or 0)
-	UI.icon(opts.Icon, { Parent = b, Size = UDim2.fromScale(0.7, 0.7), Position = UDim2.fromScale(0.5, 0.42) })
+	local b = button(opts.Name or "SquareButton", 128, 128, {
+		Color = opts.Color or UI.Colors.Purple,
+		Studs = UI.Assets.StudsSquare,
+		StudTile = 230,
+		StudAlpha = 0.2,
+	})
+	UI.image(opts.Icon, {
+		Parent = b,
+		Size = UDim2.fromOffset(96, 96),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+	})
 	if opts.Text and opts.Text ~= "" then
 		UI.text({
 			Parent = b,
 			Text = opts.Text,
-			Size = UDim2.fromScale(1.05, 0.3),
-			Position = UDim2.fromScale(0.5, 0.98),
+			TextSize = 30,
+			Size = UDim2.new(1, 0, 0, 36),
+			Position = UDim2.new(0.5, 0, 1, 2),
 			AnchorPoint = Vector2.new(0.5, 1),
 		})
 	end
-	if opts.Opens then
-		b:SetAttribute("Opens", opts.Opens)
-	end
-	b.Parent = opts.Parent
-	return b
+	return finish(b, opts)
 end
 
---[[ Rectangle button: icon on the left, title (and optional subtitle) on the right.
-	opts: Name, Text, SubText, Icon, Hue, Size (UDim2, default 240x80), Parent, Opens ]]
-function UI.rectButton(opts)
-	local b = button(opts.Name or "RectButton", opts.Size or UDim2.fromOffset(240, 80), opts.Hue or 200, UDim.new(0.22, 0))
-	UI.icon(opts.Icon, { Parent = b, Size = UDim2.fromScale(0.3, 1.05), Position = UDim2.fromScale(0.17, 0.5) })
-	local hasSub = opts.SubText ~= nil and opts.SubText ~= ""
-	UI.text({
-		Name = "Title",
-		Parent = b,
-		Text = opts.Text or "Button",
-		Size = UDim2.fromScale(0.64, if hasSub then 0.5 else 0.62),
-		Position = UDim2.fromScale(0.33, if hasSub then 0.08 else 0.19),
-	})
-	if hasSub then
-		UI.text({
-			Name = "SubText",
-			Parent = b,
-			Text = opts.SubText,
-			Size = UDim2.fromScale(0.64, 0.34),
-			Position = UDim2.fromScale(0.33, 0.58),
-			TextColor3 = UI.hue(opts.SubHue or 120),
-		})
-	end
-	if opts.Opens then
-		b:SetAttribute("Opens", opts.Opens)
-	end
-	b.Parent = opts.Parent
-	return b
-end
-
---[[ Counter: icon + value on a dark pill.
-	opts: Name, Icon, Text, Size (UDim2, default 200x54), Parent
-	Set counter.Value.Text to update it. ]]
+--[[ Counter (Figma Counter): 61px icon + 36px amount, no background.
+	opts: Name, Icon, Text, TextColor, Parent. Update counter.Amount.Text. ]]
 function UI.counter(opts)
 	local f = new("Frame", {
 		Name = opts.Name or "Counter",
-		Size = opts.Size or UDim2.fromOffset(200, 54),
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.45,
-		BorderSizePixel = 0,
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(0, 61),
+		AutomaticSize = Enum.AutomaticSize.X,
 	})
-	corner(UDim.new(0.5, 0)).Parent = f
-	UI.icon(opts.Icon, { Parent = f, Size = UDim2.fromScale(0.3, 1.2), Position = UDim2.fromScale(0.14, 0.5) })
-	UI.text({
-		Name = "Value",
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 8),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = f,
+	})
+	local icon = UI.image(opts.Icon, { Parent = f, Size = UDim2.fromOffset(61, 61) })
+	icon.LayoutOrder = 1
+	local amount = UI.text({
+		Name = "Amount",
 		Parent = f,
 		Text = opts.Text or "0",
-		Size = UDim2.fromScale(0.66, 0.72),
-		Position = UDim2.fromScale(0.3, 0.14),
+		TextSize = opts.TextSize or 36,
+		TextColor3 = opts.TextColor or UI.Colors.Gold,
+		Size = UDim2.fromOffset(0, 44),
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Stroke = 3,
 	})
-	f.Parent = opts.Parent
-	return f
+	amount.AutomaticSize = Enum.AutomaticSize.X
+	amount.LayoutOrder = 2
+	return finish(f, opts)
 end
 
---[[ Modal: a general popup (shop, inventory, rebirth...).
-	opts: Name, Title, Hue, Visible, Parent
-	Returns the modal frame and its Content scrolling frame (a UIGridLayout is
-	inside; drop cards in, or swap the layout). ]]
+--[[ Level progress (Figma Progress, 576 wide): skill row on top, bar below.
+	opts: Name, Skill, Multiplier, Level, Value, Fill (0..1), Parent.
+	Children to update: SkillRow.SkillLabel, SkillRow.Multi, Bar.Level, Bar.Value,
+	Bar.Fill (Size.X.Scale = progress). ]]
+function UI.progress(opts)
+	local f = new("Frame", {
+		Name = opts.Name or "Progress",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(576, 155),
+	})
+	local row = new("Frame", { Name = "SkillRow", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 48), Parent = f })
+	UI.image(UI.Assets.Skill, { Parent = row, Size = UDim2.fromOffset(48, 48) })
+	UI.text({
+		Name = "SkillLabel",
+		Parent = row,
+		Text = (opts.Skill or "1.2M") .. "  SKILL",
+		TextSize = 32,
+		TextColor3 = UI.Colors.Cream,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(54, 9),
+		Size = UDim2.new(0.5, 0, 0, 39),
+	})
+	UI.text({
+		Name = "Multi",
+		Parent = row,
+		Text = (opts.Multiplier or "7x") .. " Multiplier",
+		TextSize = 32,
+		TextColor3 = UI.Colors.Cream,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 9),
+		Size = UDim2.new(0.5, 0, 0, 39),
+	})
+	-- the bar: a white studded track with the blue Figma face as the fill
+	local bar = new("Frame", { Name = "Bar", Position = UDim2.fromOffset(0, 59), Size = UDim2.new(1, 0, 0, 96), Parent = f })
+	UI.face(bar, { Color = UI.Colors.Track, Shade = UI.Colors.ShadeBlack, ShadeFrom = 0.5, ShadeAlpha = 0.15, Studs = UI.Assets.Studs })
+	local fill = new("Frame", {
+		Name = "Fill",
+		Size = UDim2.fromScale(math.clamp(opts.Fill or 1, 0, 1), 1),
+		ZIndex = 4,
+		Parent = bar,
+	})
+	UI.face(fill, { Color = UI.Colors.Blue, Shade = UI.Colors.ShadeBlue, ShadeFrom = 0, ShadeAlpha = 0.4, Studs = UI.Assets.Studs })
+	UI.text({
+		Name = "Level",
+		Parent = bar,
+		Text = "Level " .. tostring(opts.Level or 80),
+		TextSize = 48,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(22, 16),
+		Size = UDim2.new(0.5, -22, 0, 58),
+		ZIndex = 6,
+	})
+	UI.text({
+		Name = "Value",
+		Parent = bar,
+		Text = opts.Value or "1.2k/3.05k",
+		TextSize = 48,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -15, 0, 16),
+		Size = UDim2.new(0.5, -15, 0, 58),
+		ZIndex = 6,
+	})
+	return finish(f, opts)
+end
+
+--[[ Buy button (Figma BuyProgress, 181x96): arm icon popping out the top, big label.
+	opts: Name, Text, Color, Shade, Price, Width, Parent ]]
+function UI.buyButton(opts)
+	local w = opts.Width or 181.33
+	local b = button(opts.Name or "BuyButton", w, 96, {
+		Color = opts.Color or UI.Colors.Yellow,
+		Shade = opts.Shade or UI.Colors.ShadeRed,
+		ShadeFrom = 0,
+		ShadeAlpha = 0.4,
+		Studs = UI.Assets.Studs,
+	})
+	UI.image(UI.Assets.Muscle, {
+		Parent = b,
+		Size = UDim2.fromOffset(96, 96),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, -15),
+	})
+	UI.text({
+		Name = "Label",
+		Parent = b,
+		Text = opts.Text or "+10M",
+		TextSize = 48,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 38),
+		Size = UDim2.new(1, 0, 0, 58),
+	})
+	if opts.Price then
+		UI.text({
+			Name = "Price",
+			Parent = b,
+			Text = opts.Price,
+			TextSize = 22,
+			TextColor3 = rgb(140, 255, 120),
+			TextXAlignment = Enum.TextXAlignment.Right,
+			AnchorPoint = Vector2.new(1, 1),
+			Position = UDim2.new(1, -8, 1, -2),
+			Size = UDim2.fromOffset(60, 26),
+		})
+	end
+	return finish(b, opts)
+end
+
+--[[ Modal: a general popup (shop, inventory, rebirth...) in the same face style.
+	opts: Name, Title, Color, Visible, Parent. Returns the modal and its Content
+	scrolling frame (a UIGridLayout is inside). ]]
 function UI.modal(opts)
 	local m = new("Frame", {
 		Name = opts.Name or "Modal",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.52),
-		-- fits two rows of 150 px cards; the Content frame scrolls past that
-		Size = UDim2.fromOffset(760, 440),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(860, 560),
 		Visible = opts.Visible ~= false,
 		ZIndex = 10,
 	})
-	UI.face(m, UI.hue(opts.Hue or 200), UDim.new(0, 22), 4)
+	UI.face(m, { Color = opts.Color or UI.Colors.Blue, Shade = UI.Colors.ShadeBlue, ShadeFrom = 0, ShadeAlpha = 0.4, Studs = UI.Assets.Studs })
 	UI.text({
 		Name = "Title",
 		Parent = m,
 		Text = opts.Title or "Shop",
-		Size = UDim2.fromOffset(420, 70),
-		Position = UDim2.fromOffset(24, 0),
-		AnchorPoint = Vector2.new(0, 0.5),
+		TextSize = 64,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Stroke = 5,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromOffset(28, 4),
+		Size = UDim2.fromOffset(480, 80),
 	})
-	local close = UI.squareButton({ Name = "Close", Icon = "✖", Hue = 0, Size = 64, Parent = m })
+	local close = button("Close", 72, 72, { Color = UI.Colors.Red, Studs = UI.Assets.Studs })
 	close.AnchorPoint = Vector2.new(0.5, 0.5)
-	close.Position = UDim2.new(1, -12, 0, 10)
-	-- a bold white X reads better than the ✖ emoji, which renders dark
-	local x = close:FindFirstChild("Icon")
-	if x then
-		x.Parent = nil
-	end
-	UI.text({
-		Name = "Icon",
-		Parent = close,
-		Text = "X",
-		Size = UDim2.fromScale(0.62, 0.62),
-		Position = UDim2.fromScale(0.5, 0.5),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Stroke = 3,
-	})
+	close.Position = UDim2.new(1, -14, 0, 14)
+	UI.text({ Name = "X", Parent = close, Text = "X", TextSize = 48 })
+	close.Parent = m
 	local body = new("Frame", {
 		Name = "Body",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -22),
-		Size = UDim2.new(1, -44, 1, -86),
+		Position = UDim2.new(0.5, 0, 1, -24),
+		Size = UDim2.new(1, -48, 1, -96),
 		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.72,
-		ZIndex = 3,
+		BackgroundTransparency = 0.75,
+		ZIndex = 4,
 		Parent = m,
 	})
-	corner(UDim.new(0, 16)).Parent = body
+	corner(body)
 	local content = new("ScrollingFrame", {
 		Name = "Content",
 		Size = UDim2.fromScale(1, 1),
@@ -1393,54 +1682,25 @@ function UI.modal(opts)
 		ScrollBarImageColor3 = Color3.new(1, 1, 1),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		CanvasSize = UDim2.new(),
-		ZIndex = 4,
+		ZIndex = 5,
 		Parent = body,
 	})
 	new("UIPadding", {
-		PaddingTop = UDim.new(0, 16),
-		PaddingBottom = UDim.new(0, 16),
-		PaddingLeft = UDim.new(0, 16),
-		PaddingRight = UDim.new(0, 16),
+		PaddingTop = UDim.new(0, 20),
+		PaddingBottom = UDim.new(0, 20),
+		PaddingLeft = UDim.new(0, 20),
+		PaddingRight = UDim.new(0, 20),
 		Parent = content,
 	})
 	new("UIGridLayout", {
-		CellSize = UDim2.fromOffset(150, 150),
-		CellPadding = UDim2.fromOffset(16, 16),
+		CellSize = UDim2.fromOffset(128, 128),
+		CellPadding = UDim2.fromOffset(28, 28),
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = content,
 	})
 	m.Parent = opts.Parent
 	return m, content
-end
-
---[[ Shop / inventory card for a modal: square button with a price under the label.
-	opts: Name, Text, Icon, Hue, Price, Parent ]]
-function UI.card(opts)
-	local c = UI.squareButton({ Name = opts.Name or "Card", Text = opts.Text, Icon = opts.Icon, Hue = opts.Hue, Size = 150 })
-	local icon = c:FindFirstChild("Icon")
-	if icon then
-		icon.Size = UDim2.fromScale(0.56, 0.56)
-		icon.Position = UDim2.fromScale(0.5, 0.36)
-	end
-	local label = c:FindFirstChild("Label")
-	if label then
-		label.Size = UDim2.fromScale(0.95, 0.2)
-		label.Position = UDim2.fromScale(0.5, 0.82)
-	end
-	if opts.Price then
-		UI.text({
-			Name = "Price",
-			Parent = c,
-			Text = opts.Price,
-			Size = UDim2.fromScale(0.9, 0.18),
-			Position = UDim2.fromScale(0.5, 0.99),
-			AnchorPoint = Vector2.new(0.5, 1),
-			TextColor3 = UI.hue(120),
-		})
-	end
-	c.Parent = opts.Parent
-	return c
 end
 
 -- LocalScript placed in the demo HUD: scales the HUD to the screen, animates
@@ -1450,10 +1710,11 @@ local TweenService = game:GetService("TweenService")
 local gui = script.Parent
 local camera = workspace.CurrentCamera
 
+-- the layout is drawn at Figma size for a 1200px-tall screen
 local autoScale = gui:FindFirstChild("AutoScale")
 local function rescale()
 	if autoScale then
-		autoScale.Scale = math.clamp(camera.ViewportSize.Y / 820, 0.55, 1.3)
+		autoScale.Scale = math.clamp(camera.ViewportSize.Y / 1200, 0.4, 1.2)
 	end
 end
 camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
@@ -1495,8 +1756,10 @@ end
 gui.DescendantAdded:Connect(hook)
 ]]
 
--- A HUD laid out with every template, as a starting point for each game.
+-- The HUD, laid out like QM's reference: Shop + square grid at the left,
+-- counters bottom-left, skill/level bar with the three buy buttons bottom-centre.
 function UI.buildHUD(parent: Instance, modalVisible: boolean?)
+	local A, C = UI.Assets, UI.Colors
 	local old = parent:FindFirstChild("HUD")
 	if old then
 		old.Parent = nil
@@ -1508,88 +1771,81 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 	})
 	new("UIScale", { Name = "AutoScale", Parent = gui })
 
-	-- left: counters over a 2-wide grid of square buttons
+	-- left: Shop over a 2-wide grid of square buttons (same 284 width)
 	local left = new("Frame", {
 		Name = "Left",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 20, 0.5, 0),
-		Size = UDim2.fromOffset(212, 470),
+		Position = UDim2.new(0, 28, 0.42, 0),
+		Size = UDim2.fromOffset(284, 96 + 28 + 128),
 		Parent = gui,
 	})
-	new("UIListLayout", { Padding = UDim.new(0, 12), SortOrder = Enum.SortOrder.LayoutOrder, Parent = left })
-	local c1 = UI.counter({ Name = "Rebirths", Icon = "🔁", Text = "2", Parent = left })
-	c1.LayoutOrder = 1
-	local c2 = UI.counter({ Name = "Wins", Icon = "🏆", Text = "14.09K", Parent = left })
-	c2.LayoutOrder = 2
-	local grid = new("Frame", {
-		Name = "Buttons",
-		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(212, 330),
-		LayoutOrder = 3,
-		Parent = left,
-	})
+	new("UIListLayout", { Padding = UDim.new(0, 28), SortOrder = Enum.SortOrder.LayoutOrder, Parent = left })
+	UI.rectButton({ Name = "Shop", Text = "Shop", Icon = A.Shop, Color = C.Red, Opens = "ShopModal", LayoutOrder = 1, Parent = left })
+	local grid = new("Frame", { Name = "Buttons", BackgroundTransparency = 1, Size = UDim2.fromOffset(284, 128), LayoutOrder = 2, Parent = left })
 	new("UIGridLayout", {
-		CellSize = UDim2.fromOffset(96, 96),
-		CellPadding = UDim2.fromOffset(14, 14),
+		CellSize = UDim2.fromOffset(128, 128),
+		CellPadding = UDim2.fromOffset(28, 28),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = grid,
 	})
-	local squares = {
-		{ "Shop", "🛒", 0, "ShopModal" },
-		{ "Rebirth", "🔁", 200 },
-		{ "Pets", "🐾", 30 },
-		{ "Auras", "✨", 285 },
-		{ "Trails", "💫", 260 },
-		{ "Gifts", "🎁", 330 },
-	}
-	for i, s in squares do
-		local b = UI.squareButton({ Name = s[1], Text = s[1], Icon = s[2], Hue = s[3], Opens = s[4], Parent = grid })
-		b.LayoutOrder = i
-	end
+	UI.squareButton({ Name = "Auras", Icon = A.Aura, Color = C.Purple, LayoutOrder = 1, Parent = grid })
+	UI.squareButton({ Name = "Pets", Icon = A.Pet, Color = C.Orange, LayoutOrder = 2, Parent = grid })
 
-	-- right: rectangle buttons
-	local right = new("Frame", {
-		Name = "Right",
+	-- bottom-left: counters
+	local counters = new("Frame", {
+		Name = "Counters",
 		BackgroundTransparency = 1,
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -20, 0.5, 0),
-		Size = UDim2.fromOffset(240, 280),
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 28, 1, -28),
+		Size = UDim2.fromOffset(284, 61 * 2 + 26),
 		Parent = gui,
 	})
-	new("UIListLayout", { Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder, Parent = right })
-	local rects = {
-		{ "x1.5 Skill", "1", "⚡", 30 },
-		{ "x2 Wins", "99", "🏆", 50 },
-		{ "Auto Throw", "79", "🎯", 200 },
-	}
-	for i, r in rects do
-		local b = UI.rectButton({ Name = r[1], Text = r[1], SubText = r[2], Icon = r[3], Hue = r[4], Parent = right })
-		b.LayoutOrder = i
-	end
+	new("UIListLayout", { Padding = UDim.new(0, 26), SortOrder = Enum.SortOrder.LayoutOrder, Parent = counters })
+	UI.counter({ Name = "Rebirths", Icon = A.Rebirth, Text = "2", TextColor = C.Ice, LayoutOrder = 1, Parent = counters })
+	UI.counter({ Name = "Wins", Icon = A.Trophy, Text = "5K", TextColor = C.Gold, LayoutOrder = 2, Parent = counters })
 
-	-- bottom centre: skill counter
-	local skill = UI.counter({ Name = "Skill", Icon = "⚡", Text = "1.23K", Parent = gui })
-	skill.AnchorPoint = Vector2.new(0.5, 1)
-	skill.Position = UDim2.new(0.5, 0, 1, -24)
+	-- bottom-centre: skill + level bar, buy buttons under it
+	local bottom = new("Frame", {
+		Name = "Bottom",
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -24),
+		Size = UDim2.fromOffset(577, 155 + 22 + 96),
+		Parent = gui,
+	})
+	UI.progress({ Name = "Progress", Skill = "1.2M", Multiplier = "7x", Level = 80, Value = "1.2k/3.05k", Fill = 0.39, Parent = bottom })
+	local buys = new("Frame", {
+		Name = "Buy",
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, 96),
+		Parent = bottom,
+	})
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Padding = UDim.new(0, 16),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = buys,
+	})
+	UI.buyButton({ Name = "Buy10M", Text = "+10M", Color = C.Yellow, Shade = C.ShadeRed, LayoutOrder = 1, Parent = buys })
+	UI.buyButton({ Name = "Buy100M", Text = "+100M", Color = C.BuyRed, Shade = C.ShadeIndigo, LayoutOrder = 2, Parent = buys })
+	UI.buyButton({ Name = "Buy1B", Text = "+1B", Color = C.Magenta, Shade = C.ShadeIndigo, LayoutOrder = 3, Parent = buys })
 
-	-- the general modal, here as a shop
-	local modal, content = UI.modal({ Name = "ShopModal", Title = "Shop", Hue = 200, Visible = modalVisible == true, Parent = gui })
+	-- the general modal, here as the shop
+	local _, content = UI.modal({ Name = "ShopModal", Title = "Shop", Visible = modalVisible == true, Parent = gui })
 	local items = {
-		{ "Sword", "🗡️", 0, "50" },
-		{ "Bat", "🏏", 30, "120" },
-		{ "Hammer", "🔨", 55, "300" },
-		{ "Rocket", "🚀", 200, "900" },
-		{ "Magnet", "🧲", 285, "2K" },
-		{ "Bomb", "💣", 330, "5K" },
-		{ "Star", "⭐", 175, "10K" },
-		{ "Crown", "👑", 120, "50K" },
+		{ "Auras", A.Aura, C.Purple },
+		{ "Pets", A.Pet, C.Orange },
+		{ "Wins", A.Trophy, C.Yellow },
+		{ "Rebirth", A.Rebirth, C.Blue },
+		{ "Skill", A.Muscle, C.Magenta },
 	}
 	for i, it in items do
-		local c = UI.card({ Name = it[1], Text = it[1], Icon = it[2], Hue = it[3], Price = it[4], Parent = content })
-		c.LayoutOrder = i
+		UI.squareButton({ Name = it[1], Icon = it[2], Color = it[3], LayoutOrder = i, Parent = content })
 	end
-	modal.ZIndex = 10
 
 	local controller = Instance.new("LocalScript")
 	controller.Name = "HUDController"
@@ -1602,16 +1858,18 @@ end
 
 -- Bare templates to :Clone() from code (ReplicatedStorage.UITemplates).
 function UI.buildTemplates(parent: Instance)
+	local A, C = UI.Assets, UI.Colors
 	local old = parent:FindFirstChild("UITemplates")
 	if old then
 		old.Parent = nil
 	end
 	local folder = new("Folder", { Name = "UITemplates" })
-	UI.squareButton({ Name = "SquareButton", Text = "Button", Icon = "⭐", Hue = 0, Parent = folder })
-	UI.rectButton({ Name = "RectButton", Text = "Button", SubText = "99", Icon = "⭐", Hue = 200, Parent = folder })
-	UI.counter({ Name = "Counter", Icon = "🏆", Text = "0", Parent = folder })
-	UI.modal({ Name = "Modal", Title = "Title", Hue = 200, Parent = folder })
-	UI.card({ Name = "Card", Text = "Item", Icon = "⭐", Hue = 50, Price = "10", Parent = folder })
+	UI.rectButton({ Name = "RectangleButton", Text = "Shop", Icon = A.Shop, Color = C.Red, Parent = folder })
+	UI.squareButton({ Name = "SquareButton", Icon = A.Aura, Color = C.Purple, Parent = folder })
+	UI.counter({ Name = "Counter", Icon = A.Trophy, Text = "5K", Parent = folder })
+	UI.progress({ Name = "Progress", Parent = folder })
+	UI.buyButton({ Name = "BuyButton", Text = "+10M", Parent = folder })
+	UI.modal({ Name = "Modal", Title = "Title", Parent = folder })
 	folder.Parent = parent
 	return folder
 end
