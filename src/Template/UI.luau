@@ -8,7 +8,7 @@
 
 	    local UIKit = require(game.ReplicatedStorage.UIKit)
 	    UIKit.squareButton({ Text = "Shop", Icon = "🛒", Hue = 0, Parent = frame })
-	    UIKit.rectButton({ Text = "x2 Wins", SubText = "⏣ 99", Icon = "🏆", Hue = 50 })
+	    UIKit.rectButton({ Text = "x2 Wins", SubText = "99", Icon = "🏆", Hue = 50 })
 	    UIKit.counter({ Icon = "🏆", Text = "14.09K" })
 	    local modal, content = UIKit.modal({ Title = "Shop", Hue = 200 })
 
@@ -229,7 +229,8 @@ function UI.modal(opts)
 		Name = opts.Name or "Modal",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.52),
-		Size = UDim2.fromOffset(760, 500),
+		-- fits two rows of 150 px cards; the Content frame scrolls past that
+		Size = UDim2.fromOffset(760, 440),
 		Visible = opts.Visible ~= false,
 		ZIndex = 10,
 	})
@@ -247,6 +248,20 @@ function UI.modal(opts)
 	local close = UI.squareButton({ Name = "Close", Icon = "✖", Hue = 0, Size = 64, Parent = m })
 	close.AnchorPoint = Vector2.new(0.5, 0.5)
 	close.Position = UDim2.new(1, -12, 0, 10)
+	-- a bold white X reads better than the ✖ emoji, which renders dark
+	local x = close:FindFirstChild("Icon")
+	if x then
+		x.Parent = nil
+	end
+	UI.text({
+		Name = "Icon",
+		Parent = close,
+		Text = "X",
+		Size = UDim2.fromScale(0.62, 0.62),
+		Position = UDim2.fromScale(0.5, 0.5),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Stroke = 3,
+	})
 	local body = new("Frame", {
 		Name = "Body",
 		AnchorPoint = Vector2.new(0.5, 1),
@@ -433,9 +448,9 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 	})
 	new("UIListLayout", { Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder, Parent = right })
 	local rects = {
-		{ "x1.5 Skill", "⏣ 1", "⚡", 30 },
-		{ "x2 Wins", "⏣ 99", "🏆", 50 },
-		{ "Auto Throw", "⏣ 79", "🎯", 200 },
+		{ "x1.5 Skill", "1", "⚡", 30 },
+		{ "x2 Wins", "99", "🏆", 50 },
+		{ "Auto Throw", "79", "🎯", 200 },
 	}
 	for i, r in rects do
 		local b = UI.rectButton({ Name = r[1], Text = r[1], SubText = r[2], Icon = r[3], Hue = r[4], Parent = right })
@@ -450,14 +465,14 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 	-- the general modal, here as a shop
 	local modal, content = UI.modal({ Name = "ShopModal", Title = "Shop", Hue = 200, Visible = modalVisible == true, Parent = gui })
 	local items = {
-		{ "Sword", "🗡️", 0, "⏣ 50" },
-		{ "Bat", "🏏", 30, "⏣ 120" },
-		{ "Hammer", "🔨", 55, "⏣ 300" },
-		{ "Rocket", "🚀", 200, "⏣ 900" },
-		{ "Magnet", "🧲", 285, "⏣ 2K" },
-		{ "Bomb", "💣", 330, "⏣ 5K" },
-		{ "Star", "⭐", 50, "⏣ 10K" },
-		{ "Crown", "👑", 45, "⏣ 50K" },
+		{ "Sword", "🗡️", 0, "50" },
+		{ "Bat", "🏏", 30, "120" },
+		{ "Hammer", "🔨", 55, "300" },
+		{ "Rocket", "🚀", 200, "900" },
+		{ "Magnet", "🧲", 285, "2K" },
+		{ "Bomb", "💣", 330, "5K" },
+		{ "Star", "⭐", 175, "10K" },
+		{ "Crown", "👑", 120, "50K" },
 	}
 	for i, it in items do
 		local c = UI.card({ Name = it[1], Text = it[1], Icon = it[2], Hue = it[3], Price = it[4], Parent = content })
@@ -482,10 +497,10 @@ function UI.buildTemplates(parent: Instance)
 	end
 	local folder = new("Folder", { Name = "UITemplates" })
 	UI.squareButton({ Name = "SquareButton", Text = "Button", Icon = "⭐", Hue = 0, Parent = folder })
-	UI.rectButton({ Name = "RectButton", Text = "Button", SubText = "⏣ 99", Icon = "⭐", Hue = 200, Parent = folder })
+	UI.rectButton({ Name = "RectButton", Text = "Button", SubText = "99", Icon = "⭐", Hue = 200, Parent = folder })
 	UI.counter({ Name = "Counter", Icon = "🏆", Text = "0", Parent = folder })
 	UI.modal({ Name = "Modal", Title = "Title", Hue = 200, Parent = folder })
-	UI.card({ Name = "Card", Text = "Item", Icon = "⭐", Hue = 50, Price = "⏣ 10", Parent = folder })
+	UI.card({ Name = "Card", Text = "Item", Icon = "⭐", Hue = 50, Price = "10", Parent = folder })
 	folder.Parent = parent
 	return folder
 end

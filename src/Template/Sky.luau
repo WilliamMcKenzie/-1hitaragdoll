@@ -11,7 +11,7 @@ local LightingService = game:GetService("Lighting")
 
 local Sky = {}
 
-Sky.AssetId = nil :: number?
+Sky.AssetId = 72835926026092 :: number? -- Anime Sky by Aschorking (free)
 Sky.Query = "Anime Sky"
 
 function Sky.find(): (number?, string?)

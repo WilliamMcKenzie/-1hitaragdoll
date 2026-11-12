@@ -15,7 +15,7 @@ local __UI_SOURCE = [=====[--[[
 
 	    local UIKit = require(game.ReplicatedStorage.UIKit)
 	    UIKit.squareButton({ Text = "Shop", Icon = "🛒", Hue = 0, Parent = frame })
-	    UIKit.rectButton({ Text = "x2 Wins", SubText = "⏣ 99", Icon = "🏆", Hue = 50 })
+	    UIKit.rectButton({ Text = "x2 Wins", SubText = "99", Icon = "🏆", Hue = 50 })
 	    UIKit.counter({ Icon = "🏆", Text = "14.09K" })
 	    local modal, content = UIKit.modal({ Title = "Shop", Hue = 200 })
 
@@ -236,7 +236,8 @@ function UI.modal(opts)
 		Name = opts.Name or "Modal",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.52),
-		Size = UDim2.fromOffset(760, 500),
+		-- fits two rows of 150 px cards; the Content frame scrolls past that
+		Size = UDim2.fromOffset(760, 440),
 		Visible = opts.Visible ~= false,
 		ZIndex = 10,
 	})
@@ -254,6 +255,20 @@ function UI.modal(opts)
 	local close = UI.squareButton({ Name = "Close", Icon = "✖", Hue = 0, Size = 64, Parent = m })
 	close.AnchorPoint = Vector2.new(0.5, 0.5)
 	close.Position = UDim2.new(1, -12, 0, 10)
+	-- a bold white X reads better than the ✖ emoji, which renders dark
+	local x = close:FindFirstChild("Icon")
+	if x then
+		x.Parent = nil
+	end
+	UI.text({
+		Name = "Icon",
+		Parent = close,
+		Text = "X",
+		Size = UDim2.fromScale(0.62, 0.62),
+		Position = UDim2.fromScale(0.5, 0.5),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Stroke = 3,
+	})
 	local body = new("Frame", {
 		Name = "Body",
 		AnchorPoint = Vector2.new(0.5, 1),
@@ -440,9 +455,9 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 	})
 	new("UIListLayout", { Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder, Parent = right })
 	local rects = {
-		{ "x1.5 Skill", "⏣ 1", "⚡", 30 },
-		{ "x2 Wins", "⏣ 99", "🏆", 50 },
-		{ "Auto Throw", "⏣ 79", "🎯", 200 },
+		{ "x1.5 Skill", "1", "⚡", 30 },
+		{ "x2 Wins", "99", "🏆", 50 },
+		{ "Auto Throw", "79", "🎯", 200 },
 	}
 	for i, r in rects do
 		local b = UI.rectButton({ Name = r[1], Text = r[1], SubText = r[2], Icon = r[3], Hue = r[4], Parent = right })
@@ -457,14 +472,14 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 	-- the general modal, here as a shop
 	local modal, content = UI.modal({ Name = "ShopModal", Title = "Shop", Hue = 200, Visible = modalVisible == true, Parent = gui })
 	local items = {
-		{ "Sword", "🗡️", 0, "⏣ 50" },
-		{ "Bat", "🏏", 30, "⏣ 120" },
-		{ "Hammer", "🔨", 55, "⏣ 300" },
-		{ "Rocket", "🚀", 200, "⏣ 900" },
-		{ "Magnet", "🧲", 285, "⏣ 2K" },
-		{ "Bomb", "💣", 330, "⏣ 5K" },
-		{ "Star", "⭐", 50, "⏣ 10K" },
-		{ "Crown", "👑", 45, "⏣ 50K" },
+		{ "Sword", "🗡️", 0, "50" },
+		{ "Bat", "🏏", 30, "120" },
+		{ "Hammer", "🔨", 55, "300" },
+		{ "Rocket", "🚀", 200, "900" },
+		{ "Magnet", "🧲", 285, "2K" },
+		{ "Bomb", "💣", 330, "5K" },
+		{ "Star", "⭐", 175, "10K" },
+		{ "Crown", "👑", 120, "50K" },
 	}
 	for i, it in items do
 		local c = UI.card({ Name = it[1], Text = it[1], Icon = it[2], Hue = it[3], Price = it[4], Parent = content })
@@ -489,10 +504,10 @@ function UI.buildTemplates(parent: Instance)
 	end
 	local folder = new("Folder", { Name = "UITemplates" })
 	UI.squareButton({ Name = "SquareButton", Text = "Button", Icon = "⭐", Hue = 0, Parent = folder })
-	UI.rectButton({ Name = "RectButton", Text = "Button", SubText = "⏣ 99", Icon = "⭐", Hue = 200, Parent = folder })
+	UI.rectButton({ Name = "RectButton", Text = "Button", SubText = "99", Icon = "⭐", Hue = 200, Parent = folder })
 	UI.counter({ Name = "Counter", Icon = "🏆", Text = "0", Parent = folder })
 	UI.modal({ Name = "Modal", Title = "Title", Hue = 200, Parent = folder })
-	UI.card({ Name = "Card", Text = "Item", Icon = "⭐", Hue = 50, Price = "⏣ 10", Parent = folder })
+	UI.card({ Name = "Card", Text = "Item", Icon = "⭐", Hue = 50, Price = "10", Parent = folder })
 	folder.Parent = parent
 	return folder
 end
@@ -597,7 +612,7 @@ Map.Settings = {
 	ClearPath = 26, -- no trees within this many studs of the centre line
 	Biomes = { "Forest", "Savanna" },
 	-- turns the HIT ZONE text so it reads from the spawn side
-	TextRotation = 90,
+	TextRotation = 180,
 }
 
 -- Part from two corners (min, max) in world space.
@@ -680,11 +695,39 @@ local function text(parent: Instance, t: string, size: UDim2, order: number)
 	return l
 end
 
+-- 👊 on a dark round badge, so the yellow emoji stands out on the yellow ledge
+local function punch(parent: Instance, order: number)
+	local badge = Instance.new("Frame")
+	badge.Name = "Punch"
+	badge.Size = UDim2.fromScale(0.44, 0.44)
+	badge.SizeConstraint = Enum.SizeConstraint.RelativeYY
+	badge.BackgroundColor3 = Color3.new(0, 0, 0)
+	badge.BackgroundTransparency = 0.3
+	badge.LayoutOrder = order
+	badge.Parent = parent
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.5, 0)
+	corner.Parent = badge
+	local ring = Instance.new("UIStroke")
+	ring.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	ring.Thickness = 3
+	ring.Color = Color3.new(1, 1, 1)
+	ring.Parent = badge
+	local e = text(badge, "👊", UDim2.fromScale(0.85, 0.85), 1)
+	e.AnchorPoint = Vector2.new(0.5, 0.5)
+	e.Position = UDim2.fromScale(0.5, 0.52)
+	return badge
+end
+
 -- "👊 HIT ZONE 👊" painted on the ledge
 local function hitZoneText(hz: BasePart)
 	local S = Map.Settings
 	-- a flat carrier part, turned so the text reads from the spawn side
-	local carrier = Builder.part(hz.Parent :: Instance, V3(S.GapWidth - 4, 0.05, S.HitZoneDepth - 6),
+	-- a Top-face SurfaceGui runs its width along the part's local Z, so the
+	-- long side goes on Z when the rotation is 0/180 and on X when it is 90/270
+	local across, along = S.GapWidth - 6, S.HitZoneDepth - 6
+	local size = if S.TextRotation % 180 == 0 then V3(along, 0.05, across) else V3(across, 0.05, along)
+	local carrier = Builder.part(hz.Parent :: Instance, size,
 		hz.CFrame * CFrame.new(0, hz.Size.Y / 2 + 0.03, 0) * CFrame.Angles(0, math.rad(S.TextRotation), 0),
 		Color3.new(1, 1, 1), "smooth", { name = "HitZoneText", canCollide = false, castShadow = false, transparency = 1 })
 	carrier.CanQuery = false
@@ -693,7 +736,7 @@ local function hitZoneText(hz: BasePart)
 	gui.Name = "Text"
 	gui.Face = Enum.NormalId.Top
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 25
+	gui.PixelsPerStud = 8 -- low on purpose: TextScaled tops out at 100 px, so this keeps the words big
 	gui.LightInfluence = 1
 	gui.Parent = carrier
 	local row = Instance.new("Frame")
@@ -705,18 +748,17 @@ local function hitZoneText(hz: BasePart)
 	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	list.VerticalAlignment = Enum.VerticalAlignment.Center
 	list.SortOrder = Enum.SortOrder.LayoutOrder
-	list.Padding = UDim.new(0.02, 0)
+	list.Padding = UDim.new(0.03, 0)
 	list.Parent = row
-	text(row, "👊", UDim2.fromScale(0.16, 0.6), 1)
-	local word = text(row, "HIT ZONE", UDim2.fromScale(0.62, 0.62), 2)
+	punch(row, 1)
+	local word = text(row, "HIT ZONE", UDim2.fromScale(0.58, 0.42), 2)
 	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 6
+	stroke.Thickness = 4
 	stroke.Color = Color3.new(0, 0, 0)
-	stroke.Transparency = 0.2
+	stroke.Transparency = 0
 	stroke.LineJoinMode = Enum.LineJoinMode.Round
 	stroke.Parent = word
-	local right = text(row, "👊", UDim2.fromScale(0.16, 0.6), 3)
-	right.Rotation = 0
+	punch(row, 3)
 	return carrier
 end
 
@@ -724,7 +766,7 @@ end
 local function chevron(parent: Instance, x: number, color: Color3)
 	local m = Builder.model("Chevron", parent)
 	for _, side in { -1, 1 } do
-		local cf = CFrame.new(x, 0.1, side * 4) * CFrame.Angles(0, math.rad(side * 40), 0)
+		local cf = CFrame.new(x, 0.1, side * 4) * CFrame.Angles(0, math.rad(-side * 40), 0)
 		Builder.part(m, V3(3, 0.2, 12), cf, color, "studs", { name = if side < 0 then "Left" else "Right", castShadow = false })
 	end
 	return m
@@ -736,7 +778,7 @@ local function sign(parent: Instance, name: string, at: Vector3, color: Color3)
 	anchor.CanQuery = false
 	anchor.CanTouch = false
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(360, 90)
+	gui.Size = UDim2.fromScale(80, 20) -- studs, so it shrinks with distance
 	gui.MaxDistance = 2000
 	gui.LightInfluence = 0
 	gui.Parent = anchor
@@ -766,7 +808,7 @@ function Map.build(parent: Instance?)
 
 	----------------------------------------------------------------- spawn
 	local spawnM = Builder.model("Spawn", root)
-	ground(spawnM, "Ground", -D - t, -L / 2 - t, t, L / 2 + t, 0, C.SpawnGround)
+	ground(spawnM, "Ground", -D - t, -L / 2 - t, 0, L / 2 + t, 0, C.SpawnGround)
 	wall(spawnM, "BackWall", -D - t, -L / 2 - t, -D, L / 2 + t, 0, H, wallPal)
 	wall(spawnM, "SideWallLeft", -D, -L / 2 - t, 0, -L / 2, 0, H, wallPal)
 	wall(spawnM, "SideWallRight", -D, L / 2, 0, L / 2 + t, 0, H, wallPal)
@@ -797,12 +839,15 @@ function Map.build(parent: Instance?)
 	local hzM = Builder.model("HitZone", root)
 	local x0, x1 = t, t + HZ
 	-- the cliff under the ledge and the raised cliff either side of the gap
-	slab(hzM, "CliffFace", V3(x0, -Drop, -G / 2), V3(x1, -1, G / 2), C.Dirt, "terrain")
+	slab(hzM, "CliffFace", V3(0, -Drop, -G / 2), V3(x1, -1, G / 2), C.Dirt, "terrain")
 	wall(hzM, "CliffLeft", x0, -edgeZ, x1, -G / 2, -Drop, H, wallPal)
 	wall(hzM, "CliffRight", x0, G / 2, x1, edgeZ, -Drop, H, wallPal)
-	local hz = slab(hzM, "Zone", V3(x0 - t, -1, -G / 2), V3(x1, 0.02, G / 2), C.HitZone, "terrain")
+	local hz = slab(hzM, "Zone", V3(0, -1, -G / 2), V3(x1, 0, G / 2), C.HitZone, "terrain")
+	-- under the front wall pieces either side of the gap, so they stand on something
+	slab(hzM, "WallFootLeft", V3(0, -Drop, -edgeZ), V3(x0, 0, -G / 2), C.Dirt, "terrain")
+	slab(hzM, "WallFootRight", V3(0, -Drop, G / 2), V3(x0, 0, edgeZ), C.Dirt, "terrain")
 	hz:SetAttribute("HitZone", true)
-	local line = slab(hzM, "GlowLine", V3(x1 - 1, 0.02, -G / 2), V3(x1, 0.22, G / 2), C.Line, "smooth",
+	local line = slab(hzM, "GlowLine", V3(x1 - 1, 0, -G / 2), V3(x1, 0.2, G / 2), C.Line, "smooth",
 		{ material = Enum.Material.Neon, canCollide = false, castShadow = false })
 	local light = Instance.new("SurfaceLight")
 	light.Face = Enum.NormalId.Top
@@ -831,7 +876,7 @@ function Map.build(parent: Instance?)
 		local wp = { Dirt = pal.Dirt, Grass = pal.Grass }
 		wall(bm, "WallLeft", bx0, -W / 2 - t, bx1, -W / 2, -Drop, H, wp)
 		wall(bm, "WallRight", bx0, W / 2, bx1, W / 2 + t, -Drop, H, wp)
-		sign(bm, name, V3(bx0 + 30, -Drop + 34, 0), pal.Sign)
+		sign(bm, name, V3(bx0 + 70, -Drop + 46, 0), pal.Sign)
 		-- trees down both sides, leaving the centre clear for the ragdoll
 		local decor = Builder.model("Trees", bm)
 		local rng = Random.new(1000 + i)
@@ -869,7 +914,7 @@ local LightingService = game:GetService("Lighting")
 
 local Sky = {}
 
-Sky.AssetId = nil :: number?
+Sky.AssetId = 72835926026092 :: number? -- Anime Sky by Aschorking (free)
 Sky.Query = "Anime Sky"
 
 function Sky.find(): (number?, string?)
@@ -1074,7 +1119,7 @@ __modules["UI"] = function()
 
 	    local UIKit = require(game.ReplicatedStorage.UIKit)
 	    UIKit.squareButton({ Text = "Shop", Icon = "🛒", Hue = 0, Parent = frame })
-	    UIKit.rectButton({ Text = "x2 Wins", SubText = "⏣ 99", Icon = "🏆", Hue = 50 })
+	    UIKit.rectButton({ Text = "x2 Wins", SubText = "99", Icon = "🏆", Hue = 50 })
 	    UIKit.counter({ Icon = "🏆", Text = "14.09K" })
 	    local modal, content = UIKit.modal({ Title = "Shop", Hue = 200 })
 
@@ -1295,7 +1340,8 @@ function UI.modal(opts)
 		Name = opts.Name or "Modal",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.52),
-		Size = UDim2.fromOffset(760, 500),
+		-- fits two rows of 150 px cards; the Content frame scrolls past that
+		Size = UDim2.fromOffset(760, 440),
 		Visible = opts.Visible ~= false,
 		ZIndex = 10,
 	})
@@ -1313,6 +1359,20 @@ function UI.modal(opts)
 	local close = UI.squareButton({ Name = "Close", Icon = "✖", Hue = 0, Size = 64, Parent = m })
 	close.AnchorPoint = Vector2.new(0.5, 0.5)
 	close.Position = UDim2.new(1, -12, 0, 10)
+	-- a bold white X reads better than the ✖ emoji, which renders dark
+	local x = close:FindFirstChild("Icon")
+	if x then
+		x.Parent = nil
+	end
+	UI.text({
+		Name = "Icon",
+		Parent = close,
+		Text = "X",
+		Size = UDim2.fromScale(0.62, 0.62),
+		Position = UDim2.fromScale(0.5, 0.5),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Stroke = 3,
+	})
 	local body = new("Frame", {
 		Name = "Body",
 		AnchorPoint = Vector2.new(0.5, 1),
@@ -1499,9 +1559,9 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 	})
 	new("UIListLayout", { Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder, Parent = right })
 	local rects = {
-		{ "x1.5 Skill", "⏣ 1", "⚡", 30 },
-		{ "x2 Wins", "⏣ 99", "🏆", 50 },
-		{ "Auto Throw", "⏣ 79", "🎯", 200 },
+		{ "x1.5 Skill", "1", "⚡", 30 },
+		{ "x2 Wins", "99", "🏆", 50 },
+		{ "Auto Throw", "79", "🎯", 200 },
 	}
 	for i, r in rects do
 		local b = UI.rectButton({ Name = r[1], Text = r[1], SubText = r[2], Icon = r[3], Hue = r[4], Parent = right })
@@ -1516,14 +1576,14 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 	-- the general modal, here as a shop
 	local modal, content = UI.modal({ Name = "ShopModal", Title = "Shop", Hue = 200, Visible = modalVisible == true, Parent = gui })
 	local items = {
-		{ "Sword", "🗡️", 0, "⏣ 50" },
-		{ "Bat", "🏏", 30, "⏣ 120" },
-		{ "Hammer", "🔨", 55, "⏣ 300" },
-		{ "Rocket", "🚀", 200, "⏣ 900" },
-		{ "Magnet", "🧲", 285, "⏣ 2K" },
-		{ "Bomb", "💣", 330, "⏣ 5K" },
-		{ "Star", "⭐", 50, "⏣ 10K" },
-		{ "Crown", "👑", 45, "⏣ 50K" },
+		{ "Sword", "🗡️", 0, "50" },
+		{ "Bat", "🏏", 30, "120" },
+		{ "Hammer", "🔨", 55, "300" },
+		{ "Rocket", "🚀", 200, "900" },
+		{ "Magnet", "🧲", 285, "2K" },
+		{ "Bomb", "💣", 330, "5K" },
+		{ "Star", "⭐", 175, "10K" },
+		{ "Crown", "👑", 120, "50K" },
 	}
 	for i, it in items do
 		local c = UI.card({ Name = it[1], Text = it[1], Icon = it[2], Hue = it[3], Price = it[4], Parent = content })
@@ -1548,10 +1608,10 @@ function UI.buildTemplates(parent: Instance)
 	end
 	local folder = new("Folder", { Name = "UITemplates" })
 	UI.squareButton({ Name = "SquareButton", Text = "Button", Icon = "⭐", Hue = 0, Parent = folder })
-	UI.rectButton({ Name = "RectButton", Text = "Button", SubText = "⏣ 99", Icon = "⭐", Hue = 200, Parent = folder })
+	UI.rectButton({ Name = "RectButton", Text = "Button", SubText = "99", Icon = "⭐", Hue = 200, Parent = folder })
 	UI.counter({ Name = "Counter", Icon = "🏆", Text = "0", Parent = folder })
 	UI.modal({ Name = "Modal", Title = "Title", Hue = 200, Parent = folder })
-	UI.card({ Name = "Card", Text = "Item", Icon = "⭐", Hue = 50, Price = "⏣ 10", Parent = folder })
+	UI.card({ Name = "Card", Text = "Item", Icon = "⭐", Hue = 50, Price = "10", Parent = folder })
 	folder.Parent = parent
 	return folder
 end
