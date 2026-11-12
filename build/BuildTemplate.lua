@@ -1542,7 +1542,7 @@ function Map.build(parent: Instance?)
 	sp.Size = V3(12, 1, 12)
 	-- players spawn facing +X, at the gap and the hit zone (a SpawnLocation's front is -Z)
 	-- ~34 studs back from the strip so HIT ZONE reads from the spawn view
-	sp.CFrame = CFrame.new(-30, -0.45, 0) * CFrame.Angles(0, -math.pi / 2, 0)
+	sp.CFrame = CFrame.new(-22, -0.45, 0) * CFrame.Angles(0, -math.pi / 2, 0)
 	sp.Transparency = 1
 	sp.CanCollide = false
 	sp.Neutral = true
