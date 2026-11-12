@@ -35,6 +35,13 @@ UI.TextOutline = Color3.fromRGB(26, 16, 48)
 UI.TextScale = 1.2
 -- level bar width: 96px tall at 8:1 (QM); the buy buttons split the same width
 UI.BarWidth = 768
+-- In-game sizing, matched to QM's reference screenshot (docs/figma/layout_inspo.png,
+-- 1994x1488): the HUD is drawn at Figma px for a screen RefHeight px tall, and
+-- the bottom cluster / counters get their own extra scale so their on-screen
+-- size matches the reference too.
+UI.RefHeight = 1300
+UI.BottomScale = 0.945 -- bar 830 px wide on a 1488 px screen
+UI.CounterScale = 1.25 -- counter icons ~100 px on a 1488 px screen
 
 -- Uploaded from the Figma file (rbxassetid). Empty = not uploaded yet.
 UI.Assets = {
@@ -48,6 +55,17 @@ UI.Assets = {
 	Rebirth = "rbxassetid://91294314164136",
 	Muscle = "rbxassetid://89389357448559", -- big flexed arm on the buy buttons
 }
+-- Figma v2 (QM, Nov 12): new icons, uploaded at 512px (originals 1254px)
+UI.Assets.Shop = "rbxassetid://94629817402467" -- basket v2
+UI.Assets.Aura = "rbxassetid://122473751099925" -- blue flame aura
+UI.Assets.Rebirth = "rbxassetid://140126511628363" -- square button and counter share it
+UI.Assets.Pet = "rbxassetid://100296903679383"
+UI.Assets.Trails = "rbxassetid://85706725966362"
+UI.Assets.Inventory = "rbxassetid://81964370370028"
+UI.Assets.Gifts = "rbxassetid://138549431513959"
+UI.Assets.Trophy = "rbxassetid://92367166837958"
+UI.Assets.Muscle = "rbxassetid://71232057538317" -- skill row and buy buttons share it
+UI.Assets.Skill = UI.Assets.Muscle
 UI.FallbackStuds = "rbxassetid://100359261064701"
 
 local rgb = Color3.fromRGB
@@ -69,6 +87,7 @@ UI.Colors = {
 	Ice = rgb(220, 247, 255), -- rebirth counter
 	Cream = rgb(255, 223, 160), -- skill row
 	Track = rgb(255, 255, 255),
+	Grey = rgb(204, 204, 204), -- v2 square buttons: black 20% over white
 }
 
 local function new(class: string, props: { [string]: any }?): any
@@ -210,11 +229,11 @@ local function finish(b: GuiObject, opts)
 	return b
 end
 
---[[ Rectangle button (Figma RectangleButton, 284x96): icon + label.
+--[[ Rectangle button (Figma RectangleButton v2, 264x96): icon + label.
 	opts: Name, Text, Icon, Color, Width, Parent, Opens ]]
 function UI.rectButton(opts)
-	local w = opts.Width or 284
-	local b = button(opts.Name or "RectangleButton", w, 96, { Color = opts.Color or UI.Colors.Red, Studs = UI.Assets.Studs })
+	local w = opts.Width or 264
+	local b = button(opts.Name or "RectangleButton", w, 96, { Color = opts.Color or UI.Colors.Yellow, Studs = UI.Assets.Studs })
 	-- icon 78px and label overlap by 12px; the pair is centred on the button
 	local content = new("Frame", {
 		Name = "Content",
@@ -245,7 +264,7 @@ end
 	opts: Name, Icon, Color, Text, Parent, Opens ]]
 function UI.squareButton(opts)
 	local b = button(opts.Name or "SquareButton", 128, 128, {
-		Color = opts.Color or UI.Colors.Purple,
+		Color = opts.Color or UI.Colors.Grey,
 		Studs = UI.Assets.StudsSquare,
 		StudTile = 230,
 		StudAlpha = 0.2,
@@ -269,23 +288,23 @@ function UI.squareButton(opts)
 	return finish(b, opts)
 end
 
---[[ Counter (Figma Counter): 61px icon + 36px amount, no background.
+--[[ Counter (Figma Counter v2): 70px icon + 36px amount at x=75, no background.
 	opts: Name, Icon, Text, TextColor, Parent. Update counter.Amount.Text. ]]
 function UI.counter(opts)
 	local f = new("Frame", {
 		Name = opts.Name or "Counter",
 		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(0, 61),
+		Size = UDim2.fromOffset(0, 70),
 		AutomaticSize = Enum.AutomaticSize.X,
 	})
 	new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
-		Padding = UDim.new(0, 8),
+		Padding = UDim.new(0, 5),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = f,
 	})
-	local icon = UI.image(opts.Icon, { Parent = f, Size = UDim2.fromOffset(61, 61) })
+	local icon = UI.image(opts.Icon, { Parent = f, Size = UDim2.fromOffset(70, 70) })
 	icon.LayoutOrder = 1
 	local amount = UI.text({
 		Name = "Amount",
@@ -309,10 +328,11 @@ function UI.progress(opts)
 	local f = new("Frame", {
 		Name = opts.Name or "Progress",
 		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(opts.Width or UI.BarWidth, 155),
+		Size = UDim2.fromOffset(opts.Width or UI.BarWidth, 161),
 	})
-	local row = new("Frame", { Name = "SkillRow", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 48), Parent = f })
-	UI.image(UI.Assets.Skill, { Parent = row, Size = UDim2.fromOffset(48, 48) })
+	-- v2: 54px row, 54px icon, labels at y=12
+	local row = new("Frame", { Name = "SkillRow", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 54), Parent = f })
+	UI.image(UI.Assets.Skill, { Parent = row, Size = UDim2.fromOffset(54, 54) })
 	UI.text({
 		Name = "SkillLabel",
 		Parent = row,
@@ -320,7 +340,7 @@ function UI.progress(opts)
 		TextSize = 32,
 		TextColor3 = UI.Colors.Cream,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromOffset(54, 9),
+		Position = UDim2.fromOffset(60, 12),
 		Size = UDim2.new(0.5, 0, 0, 39),
 	})
 	UI.text({
@@ -331,11 +351,11 @@ function UI.progress(opts)
 		TextColor3 = UI.Colors.Cream,
 		TextXAlignment = Enum.TextXAlignment.Right,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, 9),
+		Position = UDim2.new(1, 0, 0, 12),
 		Size = UDim2.new(0.5, 0, 0, 39),
 	})
 	-- the bar: a white studded track with the blue Figma face as the fill
-	local bar = new("Frame", { Name = "Bar", Position = UDim2.fromOffset(0, 59), Size = UDim2.new(1, 0, 0, 96), Parent = f })
+	local bar = new("Frame", { Name = "Bar", Position = UDim2.fromOffset(0, 65), Size = UDim2.new(1, 0, 0, 96), Parent = f })
 	UI.face(bar, { Color = UI.Colors.Track, Shade = UI.Colors.ShadeBlack, ShadeFrom = 0.5, ShadeAlpha = 0.15, Studs = UI.Assets.Studs })
 	local fill = new("Frame", {
 		Name = "Fill",
@@ -381,10 +401,10 @@ function UI.buyButton(opts)
 	})
 	UI.image(UI.Assets.Muscle, {
 		Parent = b,
-		-- 66px arm, 10px above the top edge
-		Size = UDim2.fromOffset(66, 66),
+		-- v2: 96px arm, its top 22px above the top edge
+		Size = UDim2.fromOffset(96, 96),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, -10),
+		Position = UDim2.new(0.5, 0, 0, -22),
 	})
 	UI.text({
 		Name = "Label",
@@ -490,12 +510,13 @@ local TweenService = game:GetService("TweenService")
 local gui = script.Parent
 local camera = workspace.CurrentCamera
 
--- the layout is drawn at Figma size for a 1000px-tall screen (sized so the
--- HUD takes about the share of the screen it does in QM's layout reference)
+-- the layout is drawn at Figma size for a screen RefHeight px tall (sized so
+-- the HUD takes the share of the screen it does in QM's layout reference)
 local autoScale = gui:FindFirstChild("AutoScale")
+local refHeight = gui:GetAttribute("RefHeight") or 1300
 local function rescale()
 	if autoScale then
-		autoScale.Scale = math.clamp(camera.ViewportSize.Y / 1000, 0.4, 1.4)
+		autoScale.Scale = math.clamp(camera.ViewportSize.Y / refHeight, 0.3, 1.6)
 	end
 end
 camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
@@ -552,49 +573,69 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 	})
 	new("UIScale", { Name = "AutoScale", Parent = gui })
 
-	-- left: Shop over a 2-wide grid of square buttons (same 284 width)
+	gui:SetAttribute("RefHeight", UI.RefHeight)
+
+	-- left: Shop over a 2x3 grid of grey square buttons, 8px gaps. Positions
+	-- are fractions of the screen taken from QM's reference screenshot.
 	local left = new("Frame", {
 		Name = "Left",
 		BackgroundTransparency = 1,
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 28, 0.42, 0),
-		Size = UDim2.fromOffset(284, 96 + 28 + 128),
+		AnchorPoint = Vector2.new(0, 0),
+		Position = UDim2.new(0, 24, 0.306, 0), -- Shop top at 30.6% of the screen height
+		Size = UDim2.fromOffset(264, 96 + 8 + 128 * 3 + 8 * 2),
 		Parent = gui,
 	})
-	new("UIListLayout", { Padding = UDim.new(0, 28), SortOrder = Enum.SortOrder.LayoutOrder, Parent = left })
-	UI.rectButton({ Name = "Shop", Text = "Shop", Icon = A.Shop, Color = C.Red, Opens = "ShopModal", LayoutOrder = 1, Parent = left })
-	local grid = new("Frame", { Name = "Buttons", BackgroundTransparency = 1, Size = UDim2.fromOffset(284, 128), LayoutOrder = 2, Parent = left })
+	new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = left })
+	UI.rectButton({ Name = "Shop", Text = "Shop", Icon = A.Shop, Color = C.Yellow, Opens = "ShopModal", LayoutOrder = 1, Parent = left })
+	local grid = new("Frame", { Name = "Buttons", BackgroundTransparency = 1, Size = UDim2.fromOffset(264, 128 * 3 + 8 * 2), LayoutOrder = 2, Parent = left })
 	new("UIGridLayout", {
 		CellSize = UDim2.fromOffset(128, 128),
-		CellPadding = UDim2.fromOffset(28, 28),
+		CellPadding = UDim2.fromOffset(8, 8),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = grid,
 	})
-	UI.squareButton({ Name = "Auras", Icon = A.Aura, Color = C.Purple, LayoutOrder = 1, Parent = grid })
-	UI.squareButton({ Name = "Pets", Icon = A.Pet, Color = C.Orange, LayoutOrder = 2, Parent = grid })
+	local squares = {
+		{ "Auras", A.Aura },
+		{ "Rebirth", A.Rebirth },
+		{ "Pets", A.Pet },
+		{ "Trails", A.Trails },
+		{ "Inventory", A.Inventory },
+		{ "Gifts", A.Gifts },
+	}
+	for i, sq in squares do
+		UI.squareButton({ Name = sq[1], Icon = sq[2], Color = C.Grey, LayoutOrder = i, Parent = grid })
+	end
 
-	-- bottom-left: counters
+	-- bottom-left: counters, trophy first (Figma v2), 8px apart
 	local counters = new("Frame", {
 		Name = "Counters",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 28, 1, -28),
-		Size = UDim2.fromOffset(284, 61 * 2),
+		Position = UDim2.new(0, 24, 1, -86), -- trophy bottom ~98 px above a 1488 px screen's edge
+		Size = UDim2.fromOffset(240, 70 * 2 + 8),
 		Parent = gui,
 	})
-	new("UIListLayout", { Padding = UDim.new(0, 0), SortOrder = Enum.SortOrder.LayoutOrder, Parent = counters })
-	UI.counter({ Name = "Rebirths", Icon = A.Rebirth, Text = "2", TextColor = C.Ice, LayoutOrder = 1, Parent = counters })
-	UI.counter({ Name = "Wins", Icon = A.Trophy, Text = "5K", TextColor = C.Gold, LayoutOrder = 2, Parent = counters })
+	new("UIScale", { Name = "GroupScale", Scale = UI.CounterScale, Parent = counters })
+	new("UIListLayout", {
+		Padding = UDim.new(0, 8),
+		VerticalAlignment = Enum.VerticalAlignment.Bottom,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = counters,
+	})
+	UI.counter({ Name = "Wins", Icon = A.Trophy, Text = "5K", TextColor = C.Gold, LayoutOrder = 1, Parent = counters })
+	UI.counter({ Name = "Rebirths", Icon = A.Rebirth, Text = "2", TextColor = C.Ice, LayoutOrder = 2, Parent = counters })
 
-	-- bottom-centre: skill + level bar, buy buttons under it
+	-- bottom-centre: skill + level bar, buy buttons under it (bottom ~48 px
+	-- above the edge of a 1488 px screen, labels hanging into that margin)
 	local bottom = new("Frame", {
 		Name = "Bottom",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -36), -- leaves room for the labels hanging below the buy buttons
-		Size = UDim2.fromOffset(UI.BarWidth, 155 + 12 + 74),
+		Position = UDim2.new(0.5, 0, 1, -44),
+		Size = UDim2.fromOffset(UI.BarWidth, 161 + 12 + 74),
 		Parent = gui,
 	})
+	new("UIScale", { Name = "GroupScale", Scale = UI.BottomScale, Parent = bottom })
 	UI.progress({ Name = "Progress", Skill = "1.2M", Multiplier = "7x", Level = 80, Value = "1.2k/3.05k", Fill = 0.39, Parent = bottom })
 	local buys = new("Frame", {
 		Name = "Buy",
@@ -602,6 +643,7 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromScale(0, 1),
 		Size = UDim2.new(1, 0, 0, 74),
+		ZIndex = 2,
 		Parent = bottom,
 	})
 	new("UIListLayout", {
@@ -650,8 +692,8 @@ function UI.buildTemplates(parent: Instance)
 		old.Parent = nil
 	end
 	local folder = new("Folder", { Name = "UITemplates" })
-	UI.rectButton({ Name = "RectangleButton", Text = "Shop", Icon = A.Shop, Color = C.Red, Parent = folder })
-	UI.squareButton({ Name = "SquareButton", Icon = A.Aura, Color = C.Purple, Parent = folder })
+	UI.rectButton({ Name = "RectangleButton", Text = "Shop", Icon = A.Shop, Color = C.Yellow, Parent = folder })
+	UI.squareButton({ Name = "SquareButton", Icon = A.Aura, Color = C.Grey, Parent = folder })
 	UI.counter({ Name = "Counter", Icon = A.Trophy, Text = "5K", Parent = folder })
 	UI.progress({ Name = "Progress", Parent = folder })
 	UI.buyButton({ Name = "BuyButton", Text = "+10M", Parent = folder })
@@ -1287,6 +1329,13 @@ UI.TextOutline = Color3.fromRGB(26, 16, 48)
 UI.TextScale = 1.2
 -- level bar width: 96px tall at 8:1 (QM); the buy buttons split the same width
 UI.BarWidth = 768
+-- In-game sizing, matched to QM's reference screenshot (docs/figma/layout_inspo.png,
+-- 1994x1488): the HUD is drawn at Figma px for a screen RefHeight px tall, and
+-- the bottom cluster / counters get their own extra scale so their on-screen
+-- size matches the reference too.
+UI.RefHeight = 1300
+UI.BottomScale = 0.945 -- bar 830 px wide on a 1488 px screen
+UI.CounterScale = 1.25 -- counter icons ~100 px on a 1488 px screen
 
 -- Uploaded from the Figma file (rbxassetid). Empty = not uploaded yet.
 UI.Assets = {
@@ -1300,6 +1349,17 @@ UI.Assets = {
 	Rebirth = "rbxassetid://91294314164136",
 	Muscle = "rbxassetid://89389357448559", -- big flexed arm on the buy buttons
 }
+-- Figma v2 (QM, Nov 12): new icons, uploaded at 512px (originals 1254px)
+UI.Assets.Shop = "rbxassetid://94629817402467" -- basket v2
+UI.Assets.Aura = "rbxassetid://122473751099925" -- blue flame aura
+UI.Assets.Rebirth = "rbxassetid://140126511628363" -- square button and counter share it
+UI.Assets.Pet = "rbxassetid://100296903679383"
+UI.Assets.Trails = "rbxassetid://85706725966362"
+UI.Assets.Inventory = "rbxassetid://81964370370028"
+UI.Assets.Gifts = "rbxassetid://138549431513959"
+UI.Assets.Trophy = "rbxassetid://92367166837958"
+UI.Assets.Muscle = "rbxassetid://71232057538317" -- skill row and buy buttons share it
+UI.Assets.Skill = UI.Assets.Muscle
 UI.FallbackStuds = "rbxassetid://100359261064701"
 
 local rgb = Color3.fromRGB
@@ -1321,6 +1381,7 @@ UI.Colors = {
 	Ice = rgb(220, 247, 255), -- rebirth counter
 	Cream = rgb(255, 223, 160), -- skill row
 	Track = rgb(255, 255, 255),
+	Grey = rgb(204, 204, 204), -- v2 square buttons: black 20% over white
 }
 
 local function new(class: string, props: { [string]: any }?): any
@@ -1462,11 +1523,11 @@ local function finish(b: GuiObject, opts)
 	return b
 end
 
---[[ Rectangle button (Figma RectangleButton, 284x96): icon + label.
+--[[ Rectangle button (Figma RectangleButton v2, 264x96): icon + label.
 	opts: Name, Text, Icon, Color, Width, Parent, Opens ]]
 function UI.rectButton(opts)
-	local w = opts.Width or 284
-	local b = button(opts.Name or "RectangleButton", w, 96, { Color = opts.Color or UI.Colors.Red, Studs = UI.Assets.Studs })
+	local w = opts.Width or 264
+	local b = button(opts.Name or "RectangleButton", w, 96, { Color = opts.Color or UI.Colors.Yellow, Studs = UI.Assets.Studs })
 	-- icon 78px and label overlap by 12px; the pair is centred on the button
 	local content = new("Frame", {
 		Name = "Content",
@@ -1497,7 +1558,7 @@ end
 	opts: Name, Icon, Color, Text, Parent, Opens ]]
 function UI.squareButton(opts)
 	local b = button(opts.Name or "SquareButton", 128, 128, {
-		Color = opts.Color or UI.Colors.Purple,
+		Color = opts.Color or UI.Colors.Grey,
 		Studs = UI.Assets.StudsSquare,
 		StudTile = 230,
 		StudAlpha = 0.2,
@@ -1521,23 +1582,23 @@ function UI.squareButton(opts)
 	return finish(b, opts)
 end
 
---[[ Counter (Figma Counter): 61px icon + 36px amount, no background.
+--[[ Counter (Figma Counter v2): 70px icon + 36px amount at x=75, no background.
 	opts: Name, Icon, Text, TextColor, Parent. Update counter.Amount.Text. ]]
 function UI.counter(opts)
 	local f = new("Frame", {
 		Name = opts.Name or "Counter",
 		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(0, 61),
+		Size = UDim2.fromOffset(0, 70),
 		AutomaticSize = Enum.AutomaticSize.X,
 	})
 	new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
-		Padding = UDim.new(0, 8),
+		Padding = UDim.new(0, 5),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = f,
 	})
-	local icon = UI.image(opts.Icon, { Parent = f, Size = UDim2.fromOffset(61, 61) })
+	local icon = UI.image(opts.Icon, { Parent = f, Size = UDim2.fromOffset(70, 70) })
 	icon.LayoutOrder = 1
 	local amount = UI.text({
 		Name = "Amount",
@@ -1561,10 +1622,11 @@ function UI.progress(opts)
 	local f = new("Frame", {
 		Name = opts.Name or "Progress",
 		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(opts.Width or UI.BarWidth, 155),
+		Size = UDim2.fromOffset(opts.Width or UI.BarWidth, 161),
 	})
-	local row = new("Frame", { Name = "SkillRow", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 48), Parent = f })
-	UI.image(UI.Assets.Skill, { Parent = row, Size = UDim2.fromOffset(48, 48) })
+	-- v2: 54px row, 54px icon, labels at y=12
+	local row = new("Frame", { Name = "SkillRow", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 54), Parent = f })
+	UI.image(UI.Assets.Skill, { Parent = row, Size = UDim2.fromOffset(54, 54) })
 	UI.text({
 		Name = "SkillLabel",
 		Parent = row,
@@ -1572,7 +1634,7 @@ function UI.progress(opts)
 		TextSize = 32,
 		TextColor3 = UI.Colors.Cream,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromOffset(54, 9),
+		Position = UDim2.fromOffset(60, 12),
 		Size = UDim2.new(0.5, 0, 0, 39),
 	})
 	UI.text({
@@ -1583,11 +1645,11 @@ function UI.progress(opts)
 		TextColor3 = UI.Colors.Cream,
 		TextXAlignment = Enum.TextXAlignment.Right,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, 9),
+		Position = UDim2.new(1, 0, 0, 12),
 		Size = UDim2.new(0.5, 0, 0, 39),
 	})
 	-- the bar: a white studded track with the blue Figma face as the fill
-	local bar = new("Frame", { Name = "Bar", Position = UDim2.fromOffset(0, 59), Size = UDim2.new(1, 0, 0, 96), Parent = f })
+	local bar = new("Frame", { Name = "Bar", Position = UDim2.fromOffset(0, 65), Size = UDim2.new(1, 0, 0, 96), Parent = f })
 	UI.face(bar, { Color = UI.Colors.Track, Shade = UI.Colors.ShadeBlack, ShadeFrom = 0.5, ShadeAlpha = 0.15, Studs = UI.Assets.Studs })
 	local fill = new("Frame", {
 		Name = "Fill",
@@ -1633,10 +1695,10 @@ function UI.buyButton(opts)
 	})
 	UI.image(UI.Assets.Muscle, {
 		Parent = b,
-		-- 66px arm, 10px above the top edge
-		Size = UDim2.fromOffset(66, 66),
+		-- v2: 96px arm, its top 22px above the top edge
+		Size = UDim2.fromOffset(96, 96),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, -10),
+		Position = UDim2.new(0.5, 0, 0, -22),
 	})
 	UI.text({
 		Name = "Label",
@@ -1742,12 +1804,13 @@ local TweenService = game:GetService("TweenService")
 local gui = script.Parent
 local camera = workspace.CurrentCamera
 
--- the layout is drawn at Figma size for a 1000px-tall screen (sized so the
--- HUD takes about the share of the screen it does in QM's layout reference)
+-- the layout is drawn at Figma size for a screen RefHeight px tall (sized so
+-- the HUD takes the share of the screen it does in QM's layout reference)
 local autoScale = gui:FindFirstChild("AutoScale")
+local refHeight = gui:GetAttribute("RefHeight") or 1300
 local function rescale()
 	if autoScale then
-		autoScale.Scale = math.clamp(camera.ViewportSize.Y / 1000, 0.4, 1.4)
+		autoScale.Scale = math.clamp(camera.ViewportSize.Y / refHeight, 0.3, 1.6)
 	end
 end
 camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
@@ -1804,49 +1867,69 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 	})
 	new("UIScale", { Name = "AutoScale", Parent = gui })
 
-	-- left: Shop over a 2-wide grid of square buttons (same 284 width)
+	gui:SetAttribute("RefHeight", UI.RefHeight)
+
+	-- left: Shop over a 2x3 grid of grey square buttons, 8px gaps. Positions
+	-- are fractions of the screen taken from QM's reference screenshot.
 	local left = new("Frame", {
 		Name = "Left",
 		BackgroundTransparency = 1,
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 28, 0.42, 0),
-		Size = UDim2.fromOffset(284, 96 + 28 + 128),
+		AnchorPoint = Vector2.new(0, 0),
+		Position = UDim2.new(0, 24, 0.306, 0), -- Shop top at 30.6% of the screen height
+		Size = UDim2.fromOffset(264, 96 + 8 + 128 * 3 + 8 * 2),
 		Parent = gui,
 	})
-	new("UIListLayout", { Padding = UDim.new(0, 28), SortOrder = Enum.SortOrder.LayoutOrder, Parent = left })
-	UI.rectButton({ Name = "Shop", Text = "Shop", Icon = A.Shop, Color = C.Red, Opens = "ShopModal", LayoutOrder = 1, Parent = left })
-	local grid = new("Frame", { Name = "Buttons", BackgroundTransparency = 1, Size = UDim2.fromOffset(284, 128), LayoutOrder = 2, Parent = left })
+	new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = left })
+	UI.rectButton({ Name = "Shop", Text = "Shop", Icon = A.Shop, Color = C.Yellow, Opens = "ShopModal", LayoutOrder = 1, Parent = left })
+	local grid = new("Frame", { Name = "Buttons", BackgroundTransparency = 1, Size = UDim2.fromOffset(264, 128 * 3 + 8 * 2), LayoutOrder = 2, Parent = left })
 	new("UIGridLayout", {
 		CellSize = UDim2.fromOffset(128, 128),
-		CellPadding = UDim2.fromOffset(28, 28),
+		CellPadding = UDim2.fromOffset(8, 8),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = grid,
 	})
-	UI.squareButton({ Name = "Auras", Icon = A.Aura, Color = C.Purple, LayoutOrder = 1, Parent = grid })
-	UI.squareButton({ Name = "Pets", Icon = A.Pet, Color = C.Orange, LayoutOrder = 2, Parent = grid })
+	local squares = {
+		{ "Auras", A.Aura },
+		{ "Rebirth", A.Rebirth },
+		{ "Pets", A.Pet },
+		{ "Trails", A.Trails },
+		{ "Inventory", A.Inventory },
+		{ "Gifts", A.Gifts },
+	}
+	for i, sq in squares do
+		UI.squareButton({ Name = sq[1], Icon = sq[2], Color = C.Grey, LayoutOrder = i, Parent = grid })
+	end
 
-	-- bottom-left: counters
+	-- bottom-left: counters, trophy first (Figma v2), 8px apart
 	local counters = new("Frame", {
 		Name = "Counters",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 28, 1, -28),
-		Size = UDim2.fromOffset(284, 61 * 2),
+		Position = UDim2.new(0, 24, 1, -86), -- trophy bottom ~98 px above a 1488 px screen's edge
+		Size = UDim2.fromOffset(240, 70 * 2 + 8),
 		Parent = gui,
 	})
-	new("UIListLayout", { Padding = UDim.new(0, 0), SortOrder = Enum.SortOrder.LayoutOrder, Parent = counters })
-	UI.counter({ Name = "Rebirths", Icon = A.Rebirth, Text = "2", TextColor = C.Ice, LayoutOrder = 1, Parent = counters })
-	UI.counter({ Name = "Wins", Icon = A.Trophy, Text = "5K", TextColor = C.Gold, LayoutOrder = 2, Parent = counters })
+	new("UIScale", { Name = "GroupScale", Scale = UI.CounterScale, Parent = counters })
+	new("UIListLayout", {
+		Padding = UDim.new(0, 8),
+		VerticalAlignment = Enum.VerticalAlignment.Bottom,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = counters,
+	})
+	UI.counter({ Name = "Wins", Icon = A.Trophy, Text = "5K", TextColor = C.Gold, LayoutOrder = 1, Parent = counters })
+	UI.counter({ Name = "Rebirths", Icon = A.Rebirth, Text = "2", TextColor = C.Ice, LayoutOrder = 2, Parent = counters })
 
-	-- bottom-centre: skill + level bar, buy buttons under it
+	-- bottom-centre: skill + level bar, buy buttons under it (bottom ~48 px
+	-- above the edge of a 1488 px screen, labels hanging into that margin)
 	local bottom = new("Frame", {
 		Name = "Bottom",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -36), -- leaves room for the labels hanging below the buy buttons
-		Size = UDim2.fromOffset(UI.BarWidth, 155 + 12 + 74),
+		Position = UDim2.new(0.5, 0, 1, -44),
+		Size = UDim2.fromOffset(UI.BarWidth, 161 + 12 + 74),
 		Parent = gui,
 	})
+	new("UIScale", { Name = "GroupScale", Scale = UI.BottomScale, Parent = bottom })
 	UI.progress({ Name = "Progress", Skill = "1.2M", Multiplier = "7x", Level = 80, Value = "1.2k/3.05k", Fill = 0.39, Parent = bottom })
 	local buys = new("Frame", {
 		Name = "Buy",
@@ -1854,6 +1937,7 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromScale(0, 1),
 		Size = UDim2.new(1, 0, 0, 74),
+		ZIndex = 2,
 		Parent = bottom,
 	})
 	new("UIListLayout", {
@@ -1902,8 +1986,8 @@ function UI.buildTemplates(parent: Instance)
 		old.Parent = nil
 	end
 	local folder = new("Folder", { Name = "UITemplates" })
-	UI.rectButton({ Name = "RectangleButton", Text = "Shop", Icon = A.Shop, Color = C.Red, Parent = folder })
-	UI.squareButton({ Name = "SquareButton", Icon = A.Aura, Color = C.Purple, Parent = folder })
+	UI.rectButton({ Name = "RectangleButton", Text = "Shop", Icon = A.Shop, Color = C.Yellow, Parent = folder })
+	UI.squareButton({ Name = "SquareButton", Icon = A.Aura, Color = C.Grey, Parent = folder })
 	UI.counter({ Name = "Counter", Icon = A.Trophy, Text = "5K", Parent = folder })
 	UI.progress({ Name = "Progress", Parent = folder })
 	UI.buyButton({ Name = "BuyButton", Text = "+10M", Parent = folder })
