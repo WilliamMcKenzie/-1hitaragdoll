@@ -24,6 +24,9 @@ local __UI_SOURCE = [=====[--[[
 
 	Buttons with an "Opens" attribute toggle the modal of that name (see the
 	HUD's controller script); every modal's "Close" button hides it.
+	Each button is a fixed slot with a centred "Visual" child that holds the
+	face and content; hover/press scale only the Visual, so nothing moves.
+	squareButton with no Color is the see-through Figma square.
 ]]
 
 local UI = {}
@@ -87,7 +90,6 @@ UI.Colors = {
 	Ice = rgb(220, 247, 255), -- rebirth counter
 	Cream = rgb(255, 223, 160), -- skill row
 	Track = rgb(255, 255, 255),
-	Grey = rgb(204, 204, 204), -- v2 square buttons: black 20% over white
 }
 
 local function new(class: string, props: { [string]: any }?): any
@@ -151,10 +153,11 @@ end
 
 --[[ The Figma face: fill + shade + studs + outline, on any GuiObject.
 	style: Color, Shade (colour), ShadeFrom (0..1, where the shade starts),
-	ShadeAlpha (opacity at the bottom), Studs (image), StudTile (px), StudAlpha ]]
+	ShadeAlpha (opacity at the bottom), Studs (image), StudTile (px), StudAlpha,
+	Alpha (fill opacity, default 1; the square buttons are black at 0.2) ]]
 function UI.face(f: GuiObject, style)
 	f.BackgroundColor3 = style.Color
-	f.BackgroundTransparency = 0
+	f.BackgroundTransparency = 1 - (style.Alpha or 1)
 	f.BorderSizePixel = 0
 	corner(f)
 	new("UIStroke", {
@@ -205,17 +208,31 @@ function UI.face(f: GuiObject, style)
 	return f
 end
 
+-- A button is an invisible fixed-size slot (what layouts see and what takes the
+-- clicks) holding a centred Visual with the face, content and PressScale. Hover
+-- and press scale only the Visual, so it grows from its centre and never moves
+-- its neighbours (like position: absolute). Put content in the returned Visual.
 local function button(name: string, w: number, h: number, style)
 	local b = new("TextButton", {
 		Name = name,
 		Text = "",
 		AutoButtonColor = false,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
 		Size = UDim2.fromOffset(w, h),
 		ZIndex = 1,
 	})
-	UI.face(b, style)
-	new("UIScale", { Name = "PressScale", Parent = b })
-	return b
+	local v = new("Frame", {
+		Name = "Visual",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 1,
+		Parent = b,
+	})
+	UI.face(v, style)
+	new("UIScale", { Name = "PressScale", Parent = v })
+	return b, v
 end
 
 local function finish(b: GuiObject, opts)
@@ -233,7 +250,7 @@ end
 	opts: Name, Text, Icon, Color, Width, Parent, Opens ]]
 function UI.rectButton(opts)
 	local w = opts.Width or 264
-	local b = button(opts.Name or "RectangleButton", w, 96, { Color = opts.Color or UI.Colors.Yellow, Studs = UI.Assets.Studs })
+	local b, v = button(opts.Name or "RectangleButton", w, 96, { Color = opts.Color or UI.Colors.Yellow, Studs = UI.Assets.Studs })
 	-- icon 78px and label overlap by 12px; the pair is centred on the button
 	local content = new("Frame", {
 		Name = "Content",
@@ -242,7 +259,7 @@ function UI.rectButton(opts)
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(w - 40, 78),
 		ZIndex = 4,
-		Parent = b,
+		Parent = v,
 	})
 	new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
@@ -263,21 +280,24 @@ end
 --[[ Square button (Figma SquareButton, 128x128): one 96px icon, optional label.
 	opts: Name, Icon, Color, Text, Parent, Opens ]]
 function UI.squareButton(opts)
-	local b = button(opts.Name or "SquareButton", 128, 128, {
-		Color = opts.Color or UI.Colors.Grey,
+	-- no Color: the Figma SquareButton, a see-through face (black fill at 20%,
+	-- black shade 0 -> 20% over the bottom half, pattern at 20%, 50% black outline)
+	local b, v = button(opts.Name or "SquareButton", 128, 128, {
+		Color = opts.Color or Color3.new(0, 0, 0),
+		Alpha = if opts.Color then 1 else 0.2,
 		Studs = UI.Assets.StudsSquare,
 		StudTile = 230,
 		StudAlpha = 0.2,
 	})
 	UI.image(opts.Icon, {
-		Parent = b,
+		Parent = v,
 		Size = UDim2.fromOffset(96, 96),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 	})
 	if opts.Text and opts.Text ~= "" then
 		UI.text({
-			Parent = b,
+			Parent = v,
 			Text = opts.Text,
 			TextSize = 30,
 			Size = UDim2.new(1, 0, 0, 36),
@@ -392,7 +412,7 @@ end
 	opts: Name, Text, Color, Shade, Price, Width, Parent ]]
 function UI.buyButton(opts)
 	local w = opts.Width or (UI.BarWidth - 2 * 16) / 3
-	local b = button(opts.Name or "BuyButton", w, 74, {
+	local b, v = button(opts.Name or "BuyButton", w, 74, {
 		Color = opts.Color or UI.Colors.Yellow,
 		Shade = opts.Shade or UI.Colors.ShadeRed,
 		ShadeFrom = 0,
@@ -400,7 +420,7 @@ function UI.buyButton(opts)
 		Studs = UI.Assets.Studs,
 	})
 	UI.image(UI.Assets.Muscle, {
-		Parent = b,
+		Parent = v,
 		-- v2: 96px arm, its top 22px above the top edge
 		Size = UDim2.fromOffset(96, 96),
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -408,7 +428,7 @@ function UI.buyButton(opts)
 	})
 	UI.text({
 		Name = "Label",
-		Parent = b,
+		Parent = v,
 		Text = opts.Text or "+10M",
 		TextSize = 36,
 		-- label hangs ~13px below the bottom edge, as in Figma (box at 37, not
@@ -420,7 +440,7 @@ function UI.buyButton(opts)
 	if opts.Price then
 		UI.text({
 			Name = "Price",
-			Parent = b,
+			Parent = v,
 			Text = opts.Price,
 			TextSize = 22,
 			TextColor3 = rgb(140, 255, 120),
@@ -457,10 +477,10 @@ function UI.modal(opts)
 		Position = UDim2.fromOffset(28, 4),
 		Size = UDim2.fromOffset(480, 80),
 	})
-	local close = button("Close", 72, 72, { Color = UI.Colors.Red, Studs = UI.Assets.Studs })
+	local close, closeVisual = button("Close", 72, 72, { Color = UI.Colors.Red, Studs = UI.Assets.Studs })
 	close.AnchorPoint = Vector2.new(0.5, 0.5)
 	close.Position = UDim2.new(1, -14, 0, 14)
-	UI.text({ Name = "X", Parent = close, Text = "X", TextSize = 48 })
+	UI.text({ Name = "X", Parent = closeVisual, Text = "X", TextSize = 48 })
 	close.Parent = m
 	local body = new("Frame", {
 		Name = "Body",
@@ -526,7 +546,9 @@ local function hook(b)
 	if not b:IsA("GuiButton") then
 		return
 	end
-	local s = b:FindFirstChild("PressScale")
+	-- only the inner Visual scales, from its centre, so nothing else moves
+	local visual = b:FindFirstChild("Visual")
+	local s = visual and visual:FindFirstChild("PressScale")
 	if s then
 		local function to(v)
 			TweenService:Create(s, TweenInfo.new(0.08, Enum.EasingStyle.Quad), { Scale = v }):Play()
@@ -603,7 +625,7 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		{ "Gifts", A.Gifts },
 	}
 	for i, sq in squares do
-		UI.squareButton({ Name = sq[1], Icon = sq[2], Color = C.Grey, LayoutOrder = i, Parent = grid })
+		UI.squareButton({ Name = sq[1], Icon = sq[2], LayoutOrder = i, Parent = grid })
 	end
 
 	-- bottom-left: counters, trophy first (Figma v2), 8px apart
@@ -693,7 +715,7 @@ function UI.buildTemplates(parent: Instance)
 	end
 	local folder = new("Folder", { Name = "UITemplates" })
 	UI.rectButton({ Name = "RectangleButton", Text = "Shop", Icon = A.Shop, Color = C.Yellow, Parent = folder })
-	UI.squareButton({ Name = "SquareButton", Icon = A.Aura, Color = C.Grey, Parent = folder })
+	UI.squareButton({ Name = "SquareButton", Icon = A.Aura, Parent = folder })
 	UI.counter({ Name = "Counter", Icon = A.Trophy, Text = "5K", Parent = folder })
 	UI.progress({ Name = "Progress", Parent = folder })
 	UI.buyButton({ Name = "BuyButton", Text = "+10M", Parent = folder })
@@ -1318,6 +1340,9 @@ __modules["UI"] = function()
 
 	Buttons with an "Opens" attribute toggle the modal of that name (see the
 	HUD's controller script); every modal's "Close" button hides it.
+	Each button is a fixed slot with a centred "Visual" child that holds the
+	face and content; hover/press scale only the Visual, so nothing moves.
+	squareButton with no Color is the see-through Figma square.
 ]]
 
 local UI = {}
@@ -1381,7 +1406,6 @@ UI.Colors = {
 	Ice = rgb(220, 247, 255), -- rebirth counter
 	Cream = rgb(255, 223, 160), -- skill row
 	Track = rgb(255, 255, 255),
-	Grey = rgb(204, 204, 204), -- v2 square buttons: black 20% over white
 }
 
 local function new(class: string, props: { [string]: any }?): any
@@ -1445,10 +1469,11 @@ end
 
 --[[ The Figma face: fill + shade + studs + outline, on any GuiObject.
 	style: Color, Shade (colour), ShadeFrom (0..1, where the shade starts),
-	ShadeAlpha (opacity at the bottom), Studs (image), StudTile (px), StudAlpha ]]
+	ShadeAlpha (opacity at the bottom), Studs (image), StudTile (px), StudAlpha,
+	Alpha (fill opacity, default 1; the square buttons are black at 0.2) ]]
 function UI.face(f: GuiObject, style)
 	f.BackgroundColor3 = style.Color
-	f.BackgroundTransparency = 0
+	f.BackgroundTransparency = 1 - (style.Alpha or 1)
 	f.BorderSizePixel = 0
 	corner(f)
 	new("UIStroke", {
@@ -1499,17 +1524,31 @@ function UI.face(f: GuiObject, style)
 	return f
 end
 
+-- A button is an invisible fixed-size slot (what layouts see and what takes the
+-- clicks) holding a centred Visual with the face, content and PressScale. Hover
+-- and press scale only the Visual, so it grows from its centre and never moves
+-- its neighbours (like position: absolute). Put content in the returned Visual.
 local function button(name: string, w: number, h: number, style)
 	local b = new("TextButton", {
 		Name = name,
 		Text = "",
 		AutoButtonColor = false,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
 		Size = UDim2.fromOffset(w, h),
 		ZIndex = 1,
 	})
-	UI.face(b, style)
-	new("UIScale", { Name = "PressScale", Parent = b })
-	return b
+	local v = new("Frame", {
+		Name = "Visual",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 1,
+		Parent = b,
+	})
+	UI.face(v, style)
+	new("UIScale", { Name = "PressScale", Parent = v })
+	return b, v
 end
 
 local function finish(b: GuiObject, opts)
@@ -1527,7 +1566,7 @@ end
 	opts: Name, Text, Icon, Color, Width, Parent, Opens ]]
 function UI.rectButton(opts)
 	local w = opts.Width or 264
-	local b = button(opts.Name or "RectangleButton", w, 96, { Color = opts.Color or UI.Colors.Yellow, Studs = UI.Assets.Studs })
+	local b, v = button(opts.Name or "RectangleButton", w, 96, { Color = opts.Color or UI.Colors.Yellow, Studs = UI.Assets.Studs })
 	-- icon 78px and label overlap by 12px; the pair is centred on the button
 	local content = new("Frame", {
 		Name = "Content",
@@ -1536,7 +1575,7 @@ function UI.rectButton(opts)
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(w - 40, 78),
 		ZIndex = 4,
-		Parent = b,
+		Parent = v,
 	})
 	new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
@@ -1557,21 +1596,24 @@ end
 --[[ Square button (Figma SquareButton, 128x128): one 96px icon, optional label.
 	opts: Name, Icon, Color, Text, Parent, Opens ]]
 function UI.squareButton(opts)
-	local b = button(opts.Name or "SquareButton", 128, 128, {
-		Color = opts.Color or UI.Colors.Grey,
+	-- no Color: the Figma SquareButton, a see-through face (black fill at 20%,
+	-- black shade 0 -> 20% over the bottom half, pattern at 20%, 50% black outline)
+	local b, v = button(opts.Name or "SquareButton", 128, 128, {
+		Color = opts.Color or Color3.new(0, 0, 0),
+		Alpha = if opts.Color then 1 else 0.2,
 		Studs = UI.Assets.StudsSquare,
 		StudTile = 230,
 		StudAlpha = 0.2,
 	})
 	UI.image(opts.Icon, {
-		Parent = b,
+		Parent = v,
 		Size = UDim2.fromOffset(96, 96),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 	})
 	if opts.Text and opts.Text ~= "" then
 		UI.text({
-			Parent = b,
+			Parent = v,
 			Text = opts.Text,
 			TextSize = 30,
 			Size = UDim2.new(1, 0, 0, 36),
@@ -1686,7 +1728,7 @@ end
 	opts: Name, Text, Color, Shade, Price, Width, Parent ]]
 function UI.buyButton(opts)
 	local w = opts.Width or (UI.BarWidth - 2 * 16) / 3
-	local b = button(opts.Name or "BuyButton", w, 74, {
+	local b, v = button(opts.Name or "BuyButton", w, 74, {
 		Color = opts.Color or UI.Colors.Yellow,
 		Shade = opts.Shade or UI.Colors.ShadeRed,
 		ShadeFrom = 0,
@@ -1694,7 +1736,7 @@ function UI.buyButton(opts)
 		Studs = UI.Assets.Studs,
 	})
 	UI.image(UI.Assets.Muscle, {
-		Parent = b,
+		Parent = v,
 		-- v2: 96px arm, its top 22px above the top edge
 		Size = UDim2.fromOffset(96, 96),
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -1702,7 +1744,7 @@ function UI.buyButton(opts)
 	})
 	UI.text({
 		Name = "Label",
-		Parent = b,
+		Parent = v,
 		Text = opts.Text or "+10M",
 		TextSize = 36,
 		-- label hangs ~13px below the bottom edge, as in Figma (box at 37, not
@@ -1714,7 +1756,7 @@ function UI.buyButton(opts)
 	if opts.Price then
 		UI.text({
 			Name = "Price",
-			Parent = b,
+			Parent = v,
 			Text = opts.Price,
 			TextSize = 22,
 			TextColor3 = rgb(140, 255, 120),
@@ -1751,10 +1793,10 @@ function UI.modal(opts)
 		Position = UDim2.fromOffset(28, 4),
 		Size = UDim2.fromOffset(480, 80),
 	})
-	local close = button("Close", 72, 72, { Color = UI.Colors.Red, Studs = UI.Assets.Studs })
+	local close, closeVisual = button("Close", 72, 72, { Color = UI.Colors.Red, Studs = UI.Assets.Studs })
 	close.AnchorPoint = Vector2.new(0.5, 0.5)
 	close.Position = UDim2.new(1, -14, 0, 14)
-	UI.text({ Name = "X", Parent = close, Text = "X", TextSize = 48 })
+	UI.text({ Name = "X", Parent = closeVisual, Text = "X", TextSize = 48 })
 	close.Parent = m
 	local body = new("Frame", {
 		Name = "Body",
@@ -1820,7 +1862,9 @@ local function hook(b)
 	if not b:IsA("GuiButton") then
 		return
 	end
-	local s = b:FindFirstChild("PressScale")
+	-- only the inner Visual scales, from its centre, so nothing else moves
+	local visual = b:FindFirstChild("Visual")
+	local s = visual and visual:FindFirstChild("PressScale")
 	if s then
 		local function to(v)
 			TweenService:Create(s, TweenInfo.new(0.08, Enum.EasingStyle.Quad), { Scale = v }):Play()
@@ -1897,7 +1941,7 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		{ "Gifts", A.Gifts },
 	}
 	for i, sq in squares do
-		UI.squareButton({ Name = sq[1], Icon = sq[2], Color = C.Grey, LayoutOrder = i, Parent = grid })
+		UI.squareButton({ Name = sq[1], Icon = sq[2], LayoutOrder = i, Parent = grid })
 	end
 
 	-- bottom-left: counters, trophy first (Figma v2), 8px apart
@@ -1987,7 +2031,7 @@ function UI.buildTemplates(parent: Instance)
 	end
 	local folder = new("Folder", { Name = "UITemplates" })
 	UI.rectButton({ Name = "RectangleButton", Text = "Shop", Icon = A.Shop, Color = C.Yellow, Parent = folder })
-	UI.squareButton({ Name = "SquareButton", Icon = A.Aura, Color = C.Grey, Parent = folder })
+	UI.squareButton({ Name = "SquareButton", Icon = A.Aura, Parent = folder })
 	UI.counter({ Name = "Counter", Icon = A.Trophy, Text = "5K", Parent = folder })
 	UI.progress({ Name = "Progress", Parent = folder })
 	UI.buyButton({ Name = "BuyButton", Text = "+10M", Parent = folder })
