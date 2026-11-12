@@ -1,7 +1,7 @@
 --[[
 	Template: the reusable map + HUD template.
 
-	    Template.build()  -- lighting + Anime Sky, Workspace.Map, StarterGui.HUD,
+	    Template.build()  -- lighting + Cartoon Sky, Workspace.Map, StarterGui.HUD,
 	                      -- ReplicatedStorage.UITemplates and ReplicatedStorage.UIKit
 
 	Map.Settings and Colors hold every size and colour; Trees holds the
