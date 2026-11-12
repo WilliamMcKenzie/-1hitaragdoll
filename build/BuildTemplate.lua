@@ -22,7 +22,9 @@ local __UI_SOURCE = [=====[--[[
 	    UIKit.buyButton({ Text = "+10M", Color = UIKit.Colors.Yellow, Shade = UIKit.Colors.ShadeRed })
 	    local modal, content = UIKit.modal({ Title = "Shop" })
 
-	Buttons with an "Opens" attribute toggle the modal of that name (see the
+	Popups: UI.popup (generic), UI.shopPopup, UI.rebirthPopup; UI.notification
+	puts the red "!" dot on a button.
+	Buttons with an "Opens" attribute toggle the popup/modal of that name (see the
 	HUD's controller script); every modal's "Close" button hides it.
 	Each button is a fixed slot with a centred "Visual" child that holds the
 	face and content; hover/press scale only the Visual, so nothing moves.
@@ -44,6 +46,7 @@ UI.BarWidth = 768
 -- size matches the reference too.
 UI.RefHeight = 1300
 UI.BottomScale = 0.945 -- bar 830 px wide on a 1488 px screen
+UI.PopupScale = 1.15 -- popups ~57% of the screen height, as in QM's references
 UI.CounterScale = 1.25 -- counter icons ~100 px on a 1488 px screen
 
 -- Uploaded from the Figma file (rbxassetid). Empty = not uploaded yet.
@@ -75,6 +78,13 @@ local rgb = Color3.fromRGB
 UI.Colors = {
 	Red = rgb(255, 0, 49),
 	ShopGold = rgb(255, 194, 0), -- Shop (Figma v3)
+	CloseRed = rgb(249, 3, 96), -- popup close button, rebirth warning
+	Green = rgb(77, 255, 0), -- REBIRTH
+	Violet = rgb(170, 0, 255), -- SKIP
+	ShadeSky = rgb(0, 119, 255),
+	ShadeViolet = rgb(43, 0, 255),
+	OfferGrey = rgb(217, 217, 217),
+	Notify = rgb(255, 0, 0),
 	Purple = rgb(238, 0, 255), -- Auras square
 	Orange = rgb(255, 72, 0), -- Pets square
 	Blue = rgb(0, 212, 255), -- level bar
@@ -131,10 +141,37 @@ function UI.text(props: { [string]: any })
 	})
 	new("UIStroke", {
 		Thickness = props.Stroke or math.max(2, size / 15),
-		Color = UI.TextOutline,
+		Color = props.StrokeColor or UI.TextOutline,
+		Transparency = props.StrokeTransparency or 0,
 		LineJoinMode = Enum.LineJoinMode.Round,
 		Parent = t,
 	})
+	-- Shadow: Figma's drop shadow (black, 4px down) as a black copy behind
+	if props.Shadow then
+		local sh = new("TextLabel", {
+			Name = "Shadow",
+			BackgroundTransparency = 1,
+			Font = UI.Font,
+			Text = t.Text,
+			TextColor3 = Color3.new(0, 0, 0),
+			TextSize = size,
+			TextXAlignment = t.TextXAlignment,
+			TextYAlignment = t.TextYAlignment,
+			Size = UDim2.fromScale(1, 1),
+			Position = UDim2.fromOffset(0, 4),
+			ZIndex = t.ZIndex - 1,
+			Parent = t,
+		})
+		new("UIStroke", {
+			Thickness = props.Stroke or math.max(2, size / 15),
+			Color = Color3.new(0, 0, 0),
+			LineJoinMode = Enum.LineJoinMode.Round,
+			Parent = sh,
+		})
+		t:GetPropertyChangedSignal("Text"):Connect(function()
+			sh.Text = t.Text
+		end)
+	end
 	return t
 end
 
@@ -279,7 +316,8 @@ function UI.rectButton(opts)
 end
 
 --[[ Square button (Figma SquareButton, 128x128): one 96px icon, optional label.
-	opts: Name, Icon, Color, Text, Badge (text over the top edge), Parent, Opens ]]
+	opts: Name, Icon, Color, Text, Badge (text over the top edge),
+	Notify (true or text: the red notification dot), Parent, Opens ]]
 function UI.squareButton(opts)
 	-- no Color: the Figma SquareButton (v3), a see-through face: black fill at
 	-- 50%, black shade 0 -> 50% over the bottom half, pattern at 20%, 50% black outline
@@ -307,6 +345,9 @@ function UI.squareButton(opts)
 			Position = UDim2.new(0.5, 0, 1, 2),
 			AnchorPoint = Vector2.new(0.5, 1),
 		})
+	end
+	if opts.Notify then
+		UI.notification(v, if type(opts.Notify) == "string" then opts.Notify else "!")
 	end
 	-- Badge: Figma v3 "97%" on Rebirth, 36px, its box top 10px above the square
 	if opts.Badge then
@@ -542,10 +583,272 @@ function UI.modal(opts)
 	return m, content
 end
 
+--[[ Notification dot (Figma Gifts > Notification): 48px red circle, 50% black
+	outline, white "!" (or a count), its top-left 31px in from the right edge and
+	6px above the top. Parent it to a button's Visual so it scales with hover.
+	Set dot.Visible / dot.Label.Text from code. ]]
+function UI.notification(parent: GuiObject, text: string?)
+	local dot = new("Frame", {
+		Name = "Notification",
+		BackgroundColor3 = UI.Colors.Notify,
+		BorderSizePixel = 0,
+		Position = UDim2.new(1, -31, 0, -6),
+		Size = UDim2.fromOffset(48, 48),
+		ZIndex = 7,
+		Parent = parent,
+	})
+	corner(dot, 24)
+	local st = new("UIStroke", { Thickness = 3, Color = Color3.new(0, 0, 0), Transparency = 0.5, Parent = dot })
+	pcall(function()
+		(st :: any).BorderStrokePosition = Enum.BorderStrokePosition.Inner
+	end)
+	UI.text({
+		Name = "Label",
+		Parent = dot,
+		Text = text or "!",
+		TextSize = 36,
+		StrokeColor = Color3.new(0, 0, 0),
+		StrokeTransparency = 0.5,
+		Stroke = 3,
+		ZIndex = 8,
+	})
+	return dot
+end
+
+-- the see-through face of the popups and square buttons (Figma v3 BG)
+local GLASS = {
+	Color = Color3.new(0, 0, 0),
+	Alpha = 0.5,
+	ShadeFrom = 0.5,
+	ShadeAlpha = 0.5,
+	StudAlpha = 0.2,
+	StudTile = 230,
+}
+
+--[[ Popup (Figma "Popup" frames): see-through dark panel, 80px title over the
+	top edge, a 192px icon breaking out of the top-left corner, and the red
+	88px close button over the top-right corner. Hidden by default; a button
+	with Opens = <Name> shows it (the controller closes other popups and blurs
+	the world behind it). opts: Name, Title, Icon, Width, Height, IconOffset
+	(Vector2, icon top-left relative to the panel), Visible, Parent.
+	Returns the popup; put content straight into it (panel px coordinates). ]]
+function UI.popup(opts)
+	local w, h = opts.Width or 846, opts.Height or 621
+	local p = new("Frame", {
+		Name = opts.Name or "Popup",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(w, h),
+		Visible = opts.Visible == true,
+		ZIndex = 20,
+	})
+	p:SetAttribute("Popup", true)
+	UI.face(p, table.clone(GLASS))
+	;(p:FindFirstChild("Studs") :: any).Image = UI.Assets.StudsSquare
+	-- reference screenshots: the panel is ~57% of the screen height
+	new("UIScale", { Name = "PopupScale", Scale = UI.PopupScale, Parent = p })
+	local io = opts.IconOffset or Vector2.new(-57, -60)
+	UI.image(opts.Icon, { Name = "Icon", Parent = p, Size = UDim2.fromOffset(192, 192), Position = UDim2.fromOffset(io.X, io.Y), ZIndex = 8 })
+	UI.text({
+		Name = "Title",
+		Parent = p,
+		Text = opts.Title or "Title",
+		TextSize = 80,
+		Shadow = true,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, -55),
+		Size = UDim2.new(1, -400, 0, 97),
+		ZIndex = 9,
+	})
+	-- close: flat red, 20px corners, 50% black outline, white "x"
+	local close, cv = button("Close", 88, 88, { Color = UI.Colors.CloseRed, ShadeAlpha = 0, StudAlpha = 0 })
+	cv:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 20)
+	for _, c in cv:GetChildren() do
+		if c:IsA("GuiObject") then
+			c.Visible = false -- no shade or studs on the close button
+		end
+	end
+	close.AnchorPoint = Vector2.new(1, 0)
+	close.Position = UDim2.new(1, 30, 0, -29)
+	close.ZIndex = 9
+	UI.text({
+		Name = "X",
+		Parent = cv,
+		Text = "x",
+		TextSize = 64,
+		StrokeColor = Color3.new(0, 0, 0),
+		StrokeTransparency = 0.5,
+		Stroke = 3,
+		Position = UDim2.fromOffset(0, -6),
+		ZIndex = 10,
+	})
+	close.Parent = p
+	p.Parent = opts.Parent
+	return p
+end
+
+-- a coloured face block (no button) at panel coordinates
+local function block(parent, name, x, y, w, h, style)
+	local f = new("Frame", { Name = name, Position = UDim2.fromOffset(x, y), Size = UDim2.fromOffset(w, h), ZIndex = 4, Parent = parent })
+	UI.face(f, style)
+	return f
+end
+
+--[[ Shop offer placeholder (Figma Offer): light grey card, 3px black outline,
+	white glow inside the edge. opts: Name, Height, LayoutOrder, Parent ]]
+function UI.offer(opts)
+	local f = new("Frame", {
+		Name = opts.Name or "Offer",
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, 0, 0, opts.Height or 229),
+		LayoutOrder = opts.LayoutOrder or 0,
+		ZIndex = 4,
+		Parent = opts.Parent,
+	})
+	local st = new("UIStroke", { Thickness = 3, Color = Color3.new(0, 0, 0), Parent = f })
+	pcall(function()
+		(st :: any).BorderStrokePosition = Enum.BorderStrokePosition.Inner
+	end)
+	-- Figma: inner shadow white, blur 16, spread 16 -> grey inset with a soft edge
+	local fill = new("Frame", {
+		Name = "Fill",
+		BackgroundColor3 = UI.Colors.OfferGrey,
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -40, 1, -40),
+		ZIndex = 4,
+		Parent = f,
+	})
+	corner(fill, 10)
+	new("UIStroke", { Thickness = 6, Color = rgb(236, 236, 236), Parent = fill })
+	return f
+end
+
+--[[ Shop popup (Figma 8:141): panel 1028x621, "~Section~" header and offer
+	cards in a scrolling list. Returns popup, list (add more sections/offers). ]]
+function UI.shopPopup(opts)
+	local p = UI.popup({
+		Name = opts.Name or "ShopPopup",
+		Title = opts.Title or "Shop",
+		Icon = UI.Assets.Shop,
+		Width = 1028,
+		Height = 621,
+		IconOffset = Vector2.new(-41, -73),
+		Visible = opts.Visible,
+		Parent = opts.Parent,
+	})
+	local list = new("ScrollingFrame", {
+		Name = "List",
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(16, 103),
+		Size = UDim2.new(1, -32, 1, -106),
+		CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollBarThickness = 6,
+		ScrollBarImageColor3 = Color3.new(1, 1, 1),
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		ZIndex = 4,
+		Parent = p,
+	})
+	new("UIListLayout", { Padding = UDim.new(0, 18), HorizontalAlignment = Enum.HorizontalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
+	local sections = opts.Sections or { { Title = "~Section~", Offers = { 229, 195 } } }
+	local order = 0
+	for si, sec in sections do
+		order += 1
+		UI.text({
+			Name = "Section" .. si,
+			Parent = list,
+			Text = sec.Title,
+			TextSize = 48,
+			Shadow = true,
+			Size = UDim2.new(1, 0, 0, 58),
+			ZIndex = 6,
+		}).LayoutOrder = order
+		for oi, oh in sec.Offers do
+			order += 1
+			UI.offer({ Name = ("Offer%d_%d"):format(si, oi), Height = oh, LayoutOrder = order, Parent = list })
+		end
+	end
+	return p, list
+end
+
+--[[ Rebirth popup (Figma 8:165): panel 846x621. Before/After skill boxes, the
+	reset warning, a level bar and REBIRTH / SKIP buttons. Update from code:
+	Before.Amount, After.Amount, Level.Label (TextLabels), Rebirth / Skip
+	(buttons, connect .Activated). opts: Name, Title, Icon, Before, After,
+	Level, Visible, Parent ]]
+function UI.rebirthPopup(opts)
+	local C, A = UI.Colors, UI.Assets
+	local p = UI.popup({
+		Name = opts.Name or "RebirthPopup",
+		Title = opts.Title or "Rebirth",
+		Icon = opts.Icon or A.Rebirth,
+		Width = 846,
+		Height = 621,
+		Visible = opts.Visible,
+		Parent = opts.Parent,
+	})
+	local yellow = { Color = C.Yellow, Shade = C.ShadeRed, ShadeFrom = 0, ShadeAlpha = 0.4, Studs = A.Studs }
+	for i, side in { { "Before", 96, opts.Before or "x6 SKILL" }, { "After", 481, opts.After or "x7 SKILL" } } do
+		UI.text({
+			Name = side[1] .. "Title",
+			Parent = p,
+			Text = side[1],
+			TextSize = 48,
+			Shadow = true,
+			Position = UDim2.fromOffset(side[2], 105),
+			Size = UDim2.fromOffset(278, 58),
+			ZIndex = 6,
+		})
+		local box = block(p, side[1], side[2], 183, 278, 121, yellow)
+		UI.image(A.Muscle, { Parent = box, Size = UDim2.fromOffset(96, 96), Position = UDim2.fromOffset(12, 13), ZIndex = 5 })
+		UI.text({
+			Name = "Amount",
+			Parent = box,
+			Text = side[3],
+			TextSize = 36,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Position = UDim2.fromOffset(108, 39),
+			Size = UDim2.fromOffset(160, 44),
+			ZIndex = 6,
+		})
+	end
+	UI.text({ Name = "Arrow", Parent = p, Text = ">", TextSize = 48, Shadow = true, Position = UDim2.fromOffset(412, 215), Size = UDim2.fromOffset(31, 58), ZIndex = 6 })
+	UI.text({
+		Name = "ResetWarn",
+		Parent = p,
+		Text = "Resets LEVEL and SKILL",
+		TextSize = 48,
+		TextColor3 = C.CloseRed,
+		Shadow = true,
+		Position = UDim2.fromOffset(77, 326),
+		Size = UDim2.fromOffset(682, 58),
+		ZIndex = 6,
+	})
+	local lvl = block(p, "Level", 77, 394, 682, 96, { Color = C.Blue, Shade = C.ShadeBlue, ShadeFrom = 0, ShadeAlpha = 0.4, Studs = A.Studs })
+	UI.text({ Name = "Label", Parent = lvl, Text = opts.Level or "Level 80 / Level 125", TextSize = 48, ZIndex = 6 })
+	for _, bt in {
+		{ "Rebirth", "REBIRTH", 77, C.Green, C.ShadeSky },
+		{ "Skip", "SKIP", 426, C.Violet, C.ShadeViolet },
+	} do
+		local b, v = button(bt[1], 333, 74, { Color = bt[4], Shade = bt[5], ShadeFrom = 0, ShadeAlpha = 0.4, Studs = A.Studs })
+		b.Position = UDim2.fromOffset(bt[3], 500)
+		b.ZIndex = 4
+		UI.text({ Name = "Label", Parent = v, Text = bt[2], TextSize = 36, ZIndex = 6 })
+		b.Parent = p
+	end
+	return p
+end
+
 -- LocalScript placed in the demo HUD: scales the HUD to the screen, animates
--- every button, and wires Opens / Close.
+-- every button, wires Opens / Close, and runs the popup transitions.
 UI.ControllerSource = [[
 local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
 local gui = script.Parent
 local camera = workspace.CurrentCamera
 
@@ -561,16 +864,123 @@ end
 camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
 rescale()
 
+local function tween(o, t, props, style, dir)
+	local tw = TweenService:Create(o, TweenInfo.new(t, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out), props)
+	tw:Play()
+	return tw
+end
+
+--------------------------------------------------------------------------------
+-- Popups: glass background (blur + light tint), the HUD slides out to its
+-- nearest edge (groups with a Slide attribute: Left / Right / Down) and the
+-- popup pops in from its centre. Closing plays it backwards.
+--------------------------------------------------------------------------------
+local blur = Lighting:FindFirstChild("PopupBlur") or Instance.new("BlurEffect")
+blur.Name = "PopupBlur"
+blur.Size = 0
+blur.Parent = Lighting
+
+local glassGui = Instance.new("ScreenGui")
+glassGui.Name = "PopupGlass"
+glassGui.IgnoreGuiInset = true
+glassGui.ResetOnSpawn = false
+glassGui.DisplayOrder = gui.DisplayOrder - 1
+local glass = Instance.new("Frame")
+glass.Name = "Glass"
+glass.Size = UDim2.fromScale(1, 1)
+glass.BackgroundColor3 = Color3.fromRGB(235, 245, 255)
+glass.BackgroundTransparency = 1
+glass.BorderSizePixel = 0
+glass.Parent = glassGui
+glassGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local slides = {}
+for _, g in gui:GetDescendants() do
+	local dir = g:GetAttribute("Slide")
+	if dir and g:IsA("GuiObject") then
+		local home = g.Position
+		local away = if dir == "Left" then home - UDim2.fromScale(0.6, 0)
+			elseif dir == "Right" then home + UDim2.fromScale(0.6, 0)
+			else home + UDim2.fromScale(0, 0.6)
+		table.insert(slides, { g = g, home = home, away = away })
+	end
+end
+
+local popups = {}
+for _, d in gui:GetDescendants() do
+	if d:IsA("GuiObject") and d:GetAttribute("Popup") then
+		local s = d:FindFirstChild("PopupScale")
+		popups[d] = { scale = s, base = s and s.Scale or 1, open = d.Visible }
+	end
+end
+
+local hudHidden = nil
+local function refresh()
+	local open = false
+	for _, st in popups do
+		open = open or st.open
+	end
+	if open == hudHidden then
+		return
+	end
+	hudHidden = open
+	tween(blur, 0.25, { Size = if open then 18 else 0 })
+	tween(glass, 0.25, { BackgroundTransparency = if open then 0.8 else 1 })
+	for _, sl in slides do
+		if open then
+			tween(sl.g, 0.3, { Position = sl.away }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+		else
+			tween(sl.g, 0.35, { Position = sl.home }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+		end
+	end
+end
+
+local closePopup
+local function openPopup(p)
+	local st = popups[p]
+	for o, other in popups do
+		if o ~= p and other.open then
+			closePopup(o)
+		end
+	end
+	st.open = true
+	p.Visible = true
+	if st.scale then
+		st.scale.Scale = st.base * 0.2
+		tween(st.scale, 0.35, { Scale = st.base }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	end
+	refresh()
+end
+function closePopup(p)
+	local st = popups[p]
+	if not st.open then
+		return
+	end
+	st.open = false
+	if st.scale then
+		local tw = tween(st.scale, 0.2, { Scale = st.base * 0.2 }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+		tw.Completed:Connect(function()
+			if not st.open then
+				p.Visible = false
+			end
+		end)
+	else
+		p.Visible = false
+	end
+	refresh()
+end
+
+-- buttons: hover/press scale only the inner Visual (from its centre, nothing
+-- else moves); Opens toggles a popup (or any frame); Close closes its parent
 local function hook(b)
 	if not b:IsA("GuiButton") then
 		return
 	end
-	-- only the inner Visual scales, from its centre, so nothing else moves
 	local visual = b:FindFirstChild("Visual")
 	local s = visual and visual:FindFirstChild("PressScale")
 	if s then
 		local function to(v)
-			TweenService:Create(s, TweenInfo.new(0.08, Enum.EasingStyle.Quad), { Scale = v }):Play()
+			tween(s, 0.08, { Scale = v })
 		end
 		b.MouseEnter:Connect(function() to(1.06) end)
 		b.MouseLeave:Connect(function() to(1) end)
@@ -581,14 +991,24 @@ local function hook(b)
 	if opens then
 		b.Activated:Connect(function()
 			local m = gui:FindFirstChild(opens, true)
-			if m then
+			if m and popups[m] then
+				if popups[m].open then
+					closePopup(m)
+				else
+					openPopup(m)
+				end
+			elseif m then
 				m.Visible = not m.Visible
 			end
 		end)
 	end
 	if b.Name == "Close" and b.Parent and b.Parent:IsA("GuiObject") then
 		b.Activated:Connect(function()
-			b.Parent.Visible = false
+			if popups[b.Parent] then
+				closePopup(b.Parent)
+			else
+				b.Parent.Visible = false
+			end
 		end)
 	end
 end
@@ -597,6 +1017,7 @@ for _, d in gui:GetDescendants() do
 	hook(d)
 end
 gui.DescendantAdded:Connect(hook)
+refresh()
 ]]
 
 -- The HUD, laid out like QM's reference: Shop + square grid at the left,
@@ -626,8 +1047,9 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		Size = UDim2.fromOffset(264, 96 + 8 + 128 * 3 + 8 * 2),
 		Parent = gui,
 	})
+	left:SetAttribute("Slide", "Left") -- slides off this way while a popup is open
 	new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = left })
-	UI.rectButton({ Name = "Shop", Text = "Shop", Icon = A.Shop, Color = C.ShopGold, Opens = "ShopModal", LayoutOrder = 1, Parent = left })
+	UI.rectButton({ Name = "Shop", Text = "Shop", Icon = A.Shop, Color = C.ShopGold, Opens = "ShopPopup", LayoutOrder = 1, Parent = left })
 	local grid = new("Frame", { Name = "Buttons", BackgroundTransparency = 1, Size = UDim2.fromOffset(264, 128 * 3 + 8 * 2), LayoutOrder = 2, ZIndex = 2, Parent = left })
 	-- ZIndex 2: the Rebirth badge pokes up over the Shop button's bottom edge
 	new("UIGridLayout", {
@@ -638,14 +1060,14 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 	})
 	local squares = {
 		{ "Auras", A.Aura },
-		{ "Rebirth", A.Rebirth, "97%" },
+		{ "Rebirth", A.Rebirth, "97%", "RebirthPopup" },
 		{ "Pets", A.Pet },
 		{ "Trails", A.Trails },
 		{ "Inventory", A.Inventory },
-		{ "Gifts", A.Gifts },
+		{ "Gifts", A.Gifts, nil, nil, true },
 	}
 	for i, sq in squares do
-		UI.squareButton({ Name = sq[1], Icon = sq[2], Badge = sq[3], LayoutOrder = i, Parent = grid })
+		UI.squareButton({ Name = sq[1], Icon = sq[2], Badge = sq[3], Opens = sq[4], Notify = sq[5], LayoutOrder = i, Parent = grid })
 	end
 
 	-- bottom-left: counters, trophy first (Figma v2), 8px apart
@@ -657,6 +1079,7 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		Size = UDim2.fromOffset(240, 70 * 2 + 8),
 		Parent = gui,
 	})
+	counters:SetAttribute("Slide", "Left") -- slides off this way while a popup is open
 	new("UIScale", { Name = "GroupScale", Scale = UI.CounterScale, Parent = counters })
 	new("UIListLayout", {
 		Padding = UDim.new(0, 8),
@@ -673,10 +1096,11 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		Name = "Bottom",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -44),
+		Position = UDim2.new(0.5, 0, 1, -22), -- QM: closer to the bottom
 		Size = UDim2.fromOffset(UI.BarWidth, 161 + 12 + 74),
 		Parent = gui,
 	})
+	bottom:SetAttribute("Slide", "Down") -- slides off this way while a popup is open
 	new("UIScale", { Name = "GroupScale", Scale = UI.BottomScale, Parent = bottom })
 	UI.progress({ Name = "Progress", Skill = "1.2M", Multiplier = "7x", Level = 80, Value = "1.2k/3.05k", Fill = 0.39, Parent = bottom })
 	local buys = new("Frame", {
@@ -699,23 +1123,9 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 	UI.buyButton({ Name = "Buy100M", Text = "+100M", Color = C.BuyRed, Shade = C.ShadeIndigo, LayoutOrder = 2, Parent = buys })
 	UI.buyButton({ Name = "Buy1B", Text = "+1B", Color = C.Magenta, Shade = C.ShadeIndigo, LayoutOrder = 3, Parent = buys })
 
-	-- the general modal, here as the shop
-	local _, content = UI.modal({ Name = "ShopModal", Title = "Shop", Visible = modalVisible == true, Parent = gui })
-	local items = {
-		{ "Auras", A.Aura, C.Purple },
-		{ "Pets", A.Pet, C.Orange },
-		{ "Wins", A.Trophy, C.Yellow },
-		{ "Rebirth", A.Rebirth, C.Blue },
-		{ "Skill", A.Muscle, C.Magenta },
-		{ "Basket", A.Shop, C.Red },
-		{ "Mega Pet", A.Pet, C.Purple },
-		{ "x2 Wins", A.Trophy, C.Orange },
-		{ "Power", A.Muscle, C.BuyRed },
-		{ "Aura+", A.Aura, C.Blue },
-	}
-	for i, it in items do
-		UI.squareButton({ Name = it[1], Icon = it[2], Color = it[3], Text = it[1], LayoutOrder = i, Parent = content })
-	end
+	-- popups (Figma v3): Shop opens ShopPopup, the Rebirth square RebirthPopup
+	UI.shopPopup({ Visible = modalVisible == true, Parent = gui })
+	UI.rebirthPopup({ Parent = gui })
 
 	local controller = Instance.new("LocalScript")
 	controller.Name = "HUDController"
@@ -740,6 +1150,11 @@ function UI.buildTemplates(parent: Instance)
 	UI.progress({ Name = "Progress", Parent = folder })
 	UI.buyButton({ Name = "BuyButton", Text = "+10M", Parent = folder })
 	UI.modal({ Name = "Modal", Title = "Title", Parent = folder })
+	UI.popup({ Name = "Popup", Title = "Title", Icon = A.Shop, Parent = folder })
+	UI.shopPopup({ Name = "ShopPopup", Parent = folder })
+	UI.rebirthPopup({ Name = "RebirthPopup", Parent = folder })
+	local n = new("Frame", { Name = "NotificationHolder", BackgroundTransparency = 1, Size = UDim2.fromOffset(128, 128), Parent = folder })
+	UI.notification(n)
 	folder.Parent = parent
 	return folder
 end
@@ -1359,7 +1774,9 @@ __modules["UI"] = function()
 	    UIKit.buyButton({ Text = "+10M", Color = UIKit.Colors.Yellow, Shade = UIKit.Colors.ShadeRed })
 	    local modal, content = UIKit.modal({ Title = "Shop" })
 
-	Buttons with an "Opens" attribute toggle the modal of that name (see the
+	Popups: UI.popup (generic), UI.shopPopup, UI.rebirthPopup; UI.notification
+	puts the red "!" dot on a button.
+	Buttons with an "Opens" attribute toggle the popup/modal of that name (see the
 	HUD's controller script); every modal's "Close" button hides it.
 	Each button is a fixed slot with a centred "Visual" child that holds the
 	face and content; hover/press scale only the Visual, so nothing moves.
@@ -1381,6 +1798,7 @@ UI.BarWidth = 768
 -- size matches the reference too.
 UI.RefHeight = 1300
 UI.BottomScale = 0.945 -- bar 830 px wide on a 1488 px screen
+UI.PopupScale = 1.15 -- popups ~57% of the screen height, as in QM's references
 UI.CounterScale = 1.25 -- counter icons ~100 px on a 1488 px screen
 
 -- Uploaded from the Figma file (rbxassetid). Empty = not uploaded yet.
@@ -1412,6 +1830,13 @@ local rgb = Color3.fromRGB
 UI.Colors = {
 	Red = rgb(255, 0, 49),
 	ShopGold = rgb(255, 194, 0), -- Shop (Figma v3)
+	CloseRed = rgb(249, 3, 96), -- popup close button, rebirth warning
+	Green = rgb(77, 255, 0), -- REBIRTH
+	Violet = rgb(170, 0, 255), -- SKIP
+	ShadeSky = rgb(0, 119, 255),
+	ShadeViolet = rgb(43, 0, 255),
+	OfferGrey = rgb(217, 217, 217),
+	Notify = rgb(255, 0, 0),
 	Purple = rgb(238, 0, 255), -- Auras square
 	Orange = rgb(255, 72, 0), -- Pets square
 	Blue = rgb(0, 212, 255), -- level bar
@@ -1468,10 +1893,37 @@ function UI.text(props: { [string]: any })
 	})
 	new("UIStroke", {
 		Thickness = props.Stroke or math.max(2, size / 15),
-		Color = UI.TextOutline,
+		Color = props.StrokeColor or UI.TextOutline,
+		Transparency = props.StrokeTransparency or 0,
 		LineJoinMode = Enum.LineJoinMode.Round,
 		Parent = t,
 	})
+	-- Shadow: Figma's drop shadow (black, 4px down) as a black copy behind
+	if props.Shadow then
+		local sh = new("TextLabel", {
+			Name = "Shadow",
+			BackgroundTransparency = 1,
+			Font = UI.Font,
+			Text = t.Text,
+			TextColor3 = Color3.new(0, 0, 0),
+			TextSize = size,
+			TextXAlignment = t.TextXAlignment,
+			TextYAlignment = t.TextYAlignment,
+			Size = UDim2.fromScale(1, 1),
+			Position = UDim2.fromOffset(0, 4),
+			ZIndex = t.ZIndex - 1,
+			Parent = t,
+		})
+		new("UIStroke", {
+			Thickness = props.Stroke or math.max(2, size / 15),
+			Color = Color3.new(0, 0, 0),
+			LineJoinMode = Enum.LineJoinMode.Round,
+			Parent = sh,
+		})
+		t:GetPropertyChangedSignal("Text"):Connect(function()
+			sh.Text = t.Text
+		end)
+	end
 	return t
 end
 
@@ -1616,7 +2068,8 @@ function UI.rectButton(opts)
 end
 
 --[[ Square button (Figma SquareButton, 128x128): one 96px icon, optional label.
-	opts: Name, Icon, Color, Text, Badge (text over the top edge), Parent, Opens ]]
+	opts: Name, Icon, Color, Text, Badge (text over the top edge),
+	Notify (true or text: the red notification dot), Parent, Opens ]]
 function UI.squareButton(opts)
 	-- no Color: the Figma SquareButton (v3), a see-through face: black fill at
 	-- 50%, black shade 0 -> 50% over the bottom half, pattern at 20%, 50% black outline
@@ -1644,6 +2097,9 @@ function UI.squareButton(opts)
 			Position = UDim2.new(0.5, 0, 1, 2),
 			AnchorPoint = Vector2.new(0.5, 1),
 		})
+	end
+	if opts.Notify then
+		UI.notification(v, if type(opts.Notify) == "string" then opts.Notify else "!")
 	end
 	-- Badge: Figma v3 "97%" on Rebirth, 36px, its box top 10px above the square
 	if opts.Badge then
@@ -1879,10 +2335,272 @@ function UI.modal(opts)
 	return m, content
 end
 
+--[[ Notification dot (Figma Gifts > Notification): 48px red circle, 50% black
+	outline, white "!" (or a count), its top-left 31px in from the right edge and
+	6px above the top. Parent it to a button's Visual so it scales with hover.
+	Set dot.Visible / dot.Label.Text from code. ]]
+function UI.notification(parent: GuiObject, text: string?)
+	local dot = new("Frame", {
+		Name = "Notification",
+		BackgroundColor3 = UI.Colors.Notify,
+		BorderSizePixel = 0,
+		Position = UDim2.new(1, -31, 0, -6),
+		Size = UDim2.fromOffset(48, 48),
+		ZIndex = 7,
+		Parent = parent,
+	})
+	corner(dot, 24)
+	local st = new("UIStroke", { Thickness = 3, Color = Color3.new(0, 0, 0), Transparency = 0.5, Parent = dot })
+	pcall(function()
+		(st :: any).BorderStrokePosition = Enum.BorderStrokePosition.Inner
+	end)
+	UI.text({
+		Name = "Label",
+		Parent = dot,
+		Text = text or "!",
+		TextSize = 36,
+		StrokeColor = Color3.new(0, 0, 0),
+		StrokeTransparency = 0.5,
+		Stroke = 3,
+		ZIndex = 8,
+	})
+	return dot
+end
+
+-- the see-through face of the popups and square buttons (Figma v3 BG)
+local GLASS = {
+	Color = Color3.new(0, 0, 0),
+	Alpha = 0.5,
+	ShadeFrom = 0.5,
+	ShadeAlpha = 0.5,
+	StudAlpha = 0.2,
+	StudTile = 230,
+}
+
+--[[ Popup (Figma "Popup" frames): see-through dark panel, 80px title over the
+	top edge, a 192px icon breaking out of the top-left corner, and the red
+	88px close button over the top-right corner. Hidden by default; a button
+	with Opens = <Name> shows it (the controller closes other popups and blurs
+	the world behind it). opts: Name, Title, Icon, Width, Height, IconOffset
+	(Vector2, icon top-left relative to the panel), Visible, Parent.
+	Returns the popup; put content straight into it (panel px coordinates). ]]
+function UI.popup(opts)
+	local w, h = opts.Width or 846, opts.Height or 621
+	local p = new("Frame", {
+		Name = opts.Name or "Popup",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(w, h),
+		Visible = opts.Visible == true,
+		ZIndex = 20,
+	})
+	p:SetAttribute("Popup", true)
+	UI.face(p, table.clone(GLASS))
+	;(p:FindFirstChild("Studs") :: any).Image = UI.Assets.StudsSquare
+	-- reference screenshots: the panel is ~57% of the screen height
+	new("UIScale", { Name = "PopupScale", Scale = UI.PopupScale, Parent = p })
+	local io = opts.IconOffset or Vector2.new(-57, -60)
+	UI.image(opts.Icon, { Name = "Icon", Parent = p, Size = UDim2.fromOffset(192, 192), Position = UDim2.fromOffset(io.X, io.Y), ZIndex = 8 })
+	UI.text({
+		Name = "Title",
+		Parent = p,
+		Text = opts.Title or "Title",
+		TextSize = 80,
+		Shadow = true,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, -55),
+		Size = UDim2.new(1, -400, 0, 97),
+		ZIndex = 9,
+	})
+	-- close: flat red, 20px corners, 50% black outline, white "x"
+	local close, cv = button("Close", 88, 88, { Color = UI.Colors.CloseRed, ShadeAlpha = 0, StudAlpha = 0 })
+	cv:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 20)
+	for _, c in cv:GetChildren() do
+		if c:IsA("GuiObject") then
+			c.Visible = false -- no shade or studs on the close button
+		end
+	end
+	close.AnchorPoint = Vector2.new(1, 0)
+	close.Position = UDim2.new(1, 30, 0, -29)
+	close.ZIndex = 9
+	UI.text({
+		Name = "X",
+		Parent = cv,
+		Text = "x",
+		TextSize = 64,
+		StrokeColor = Color3.new(0, 0, 0),
+		StrokeTransparency = 0.5,
+		Stroke = 3,
+		Position = UDim2.fromOffset(0, -6),
+		ZIndex = 10,
+	})
+	close.Parent = p
+	p.Parent = opts.Parent
+	return p
+end
+
+-- a coloured face block (no button) at panel coordinates
+local function block(parent, name, x, y, w, h, style)
+	local f = new("Frame", { Name = name, Position = UDim2.fromOffset(x, y), Size = UDim2.fromOffset(w, h), ZIndex = 4, Parent = parent })
+	UI.face(f, style)
+	return f
+end
+
+--[[ Shop offer placeholder (Figma Offer): light grey card, 3px black outline,
+	white glow inside the edge. opts: Name, Height, LayoutOrder, Parent ]]
+function UI.offer(opts)
+	local f = new("Frame", {
+		Name = opts.Name or "Offer",
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, 0, 0, opts.Height or 229),
+		LayoutOrder = opts.LayoutOrder or 0,
+		ZIndex = 4,
+		Parent = opts.Parent,
+	})
+	local st = new("UIStroke", { Thickness = 3, Color = Color3.new(0, 0, 0), Parent = f })
+	pcall(function()
+		(st :: any).BorderStrokePosition = Enum.BorderStrokePosition.Inner
+	end)
+	-- Figma: inner shadow white, blur 16, spread 16 -> grey inset with a soft edge
+	local fill = new("Frame", {
+		Name = "Fill",
+		BackgroundColor3 = UI.Colors.OfferGrey,
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -40, 1, -40),
+		ZIndex = 4,
+		Parent = f,
+	})
+	corner(fill, 10)
+	new("UIStroke", { Thickness = 6, Color = rgb(236, 236, 236), Parent = fill })
+	return f
+end
+
+--[[ Shop popup (Figma 8:141): panel 1028x621, "~Section~" header and offer
+	cards in a scrolling list. Returns popup, list (add more sections/offers). ]]
+function UI.shopPopup(opts)
+	local p = UI.popup({
+		Name = opts.Name or "ShopPopup",
+		Title = opts.Title or "Shop",
+		Icon = UI.Assets.Shop,
+		Width = 1028,
+		Height = 621,
+		IconOffset = Vector2.new(-41, -73),
+		Visible = opts.Visible,
+		Parent = opts.Parent,
+	})
+	local list = new("ScrollingFrame", {
+		Name = "List",
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(16, 103),
+		Size = UDim2.new(1, -32, 1, -106),
+		CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollBarThickness = 6,
+		ScrollBarImageColor3 = Color3.new(1, 1, 1),
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		ZIndex = 4,
+		Parent = p,
+	})
+	new("UIListLayout", { Padding = UDim.new(0, 18), HorizontalAlignment = Enum.HorizontalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
+	local sections = opts.Sections or { { Title = "~Section~", Offers = { 229, 195 } } }
+	local order = 0
+	for si, sec in sections do
+		order += 1
+		UI.text({
+			Name = "Section" .. si,
+			Parent = list,
+			Text = sec.Title,
+			TextSize = 48,
+			Shadow = true,
+			Size = UDim2.new(1, 0, 0, 58),
+			ZIndex = 6,
+		}).LayoutOrder = order
+		for oi, oh in sec.Offers do
+			order += 1
+			UI.offer({ Name = ("Offer%d_%d"):format(si, oi), Height = oh, LayoutOrder = order, Parent = list })
+		end
+	end
+	return p, list
+end
+
+--[[ Rebirth popup (Figma 8:165): panel 846x621. Before/After skill boxes, the
+	reset warning, a level bar and REBIRTH / SKIP buttons. Update from code:
+	Before.Amount, After.Amount, Level.Label (TextLabels), Rebirth / Skip
+	(buttons, connect .Activated). opts: Name, Title, Icon, Before, After,
+	Level, Visible, Parent ]]
+function UI.rebirthPopup(opts)
+	local C, A = UI.Colors, UI.Assets
+	local p = UI.popup({
+		Name = opts.Name or "RebirthPopup",
+		Title = opts.Title or "Rebirth",
+		Icon = opts.Icon or A.Rebirth,
+		Width = 846,
+		Height = 621,
+		Visible = opts.Visible,
+		Parent = opts.Parent,
+	})
+	local yellow = { Color = C.Yellow, Shade = C.ShadeRed, ShadeFrom = 0, ShadeAlpha = 0.4, Studs = A.Studs }
+	for i, side in { { "Before", 96, opts.Before or "x6 SKILL" }, { "After", 481, opts.After or "x7 SKILL" } } do
+		UI.text({
+			Name = side[1] .. "Title",
+			Parent = p,
+			Text = side[1],
+			TextSize = 48,
+			Shadow = true,
+			Position = UDim2.fromOffset(side[2], 105),
+			Size = UDim2.fromOffset(278, 58),
+			ZIndex = 6,
+		})
+		local box = block(p, side[1], side[2], 183, 278, 121, yellow)
+		UI.image(A.Muscle, { Parent = box, Size = UDim2.fromOffset(96, 96), Position = UDim2.fromOffset(12, 13), ZIndex = 5 })
+		UI.text({
+			Name = "Amount",
+			Parent = box,
+			Text = side[3],
+			TextSize = 36,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Position = UDim2.fromOffset(108, 39),
+			Size = UDim2.fromOffset(160, 44),
+			ZIndex = 6,
+		})
+	end
+	UI.text({ Name = "Arrow", Parent = p, Text = ">", TextSize = 48, Shadow = true, Position = UDim2.fromOffset(412, 215), Size = UDim2.fromOffset(31, 58), ZIndex = 6 })
+	UI.text({
+		Name = "ResetWarn",
+		Parent = p,
+		Text = "Resets LEVEL and SKILL",
+		TextSize = 48,
+		TextColor3 = C.CloseRed,
+		Shadow = true,
+		Position = UDim2.fromOffset(77, 326),
+		Size = UDim2.fromOffset(682, 58),
+		ZIndex = 6,
+	})
+	local lvl = block(p, "Level", 77, 394, 682, 96, { Color = C.Blue, Shade = C.ShadeBlue, ShadeFrom = 0, ShadeAlpha = 0.4, Studs = A.Studs })
+	UI.text({ Name = "Label", Parent = lvl, Text = opts.Level or "Level 80 / Level 125", TextSize = 48, ZIndex = 6 })
+	for _, bt in {
+		{ "Rebirth", "REBIRTH", 77, C.Green, C.ShadeSky },
+		{ "Skip", "SKIP", 426, C.Violet, C.ShadeViolet },
+	} do
+		local b, v = button(bt[1], 333, 74, { Color = bt[4], Shade = bt[5], ShadeFrom = 0, ShadeAlpha = 0.4, Studs = A.Studs })
+		b.Position = UDim2.fromOffset(bt[3], 500)
+		b.ZIndex = 4
+		UI.text({ Name = "Label", Parent = v, Text = bt[2], TextSize = 36, ZIndex = 6 })
+		b.Parent = p
+	end
+	return p
+end
+
 -- LocalScript placed in the demo HUD: scales the HUD to the screen, animates
--- every button, and wires Opens / Close.
+-- every button, wires Opens / Close, and runs the popup transitions.
 UI.ControllerSource = [[
 local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
 local gui = script.Parent
 local camera = workspace.CurrentCamera
 
@@ -1898,16 +2616,123 @@ end
 camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
 rescale()
 
+local function tween(o, t, props, style, dir)
+	local tw = TweenService:Create(o, TweenInfo.new(t, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out), props)
+	tw:Play()
+	return tw
+end
+
+--------------------------------------------------------------------------------
+-- Popups: glass background (blur + light tint), the HUD slides out to its
+-- nearest edge (groups with a Slide attribute: Left / Right / Down) and the
+-- popup pops in from its centre. Closing plays it backwards.
+--------------------------------------------------------------------------------
+local blur = Lighting:FindFirstChild("PopupBlur") or Instance.new("BlurEffect")
+blur.Name = "PopupBlur"
+blur.Size = 0
+blur.Parent = Lighting
+
+local glassGui = Instance.new("ScreenGui")
+glassGui.Name = "PopupGlass"
+glassGui.IgnoreGuiInset = true
+glassGui.ResetOnSpawn = false
+glassGui.DisplayOrder = gui.DisplayOrder - 1
+local glass = Instance.new("Frame")
+glass.Name = "Glass"
+glass.Size = UDim2.fromScale(1, 1)
+glass.BackgroundColor3 = Color3.fromRGB(235, 245, 255)
+glass.BackgroundTransparency = 1
+glass.BorderSizePixel = 0
+glass.Parent = glassGui
+glassGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local slides = {}
+for _, g in gui:GetDescendants() do
+	local dir = g:GetAttribute("Slide")
+	if dir and g:IsA("GuiObject") then
+		local home = g.Position
+		local away = if dir == "Left" then home - UDim2.fromScale(0.6, 0)
+			elseif dir == "Right" then home + UDim2.fromScale(0.6, 0)
+			else home + UDim2.fromScale(0, 0.6)
+		table.insert(slides, { g = g, home = home, away = away })
+	end
+end
+
+local popups = {}
+for _, d in gui:GetDescendants() do
+	if d:IsA("GuiObject") and d:GetAttribute("Popup") then
+		local s = d:FindFirstChild("PopupScale")
+		popups[d] = { scale = s, base = s and s.Scale or 1, open = d.Visible }
+	end
+end
+
+local hudHidden = nil
+local function refresh()
+	local open = false
+	for _, st in popups do
+		open = open or st.open
+	end
+	if open == hudHidden then
+		return
+	end
+	hudHidden = open
+	tween(blur, 0.25, { Size = if open then 18 else 0 })
+	tween(glass, 0.25, { BackgroundTransparency = if open then 0.8 else 1 })
+	for _, sl in slides do
+		if open then
+			tween(sl.g, 0.3, { Position = sl.away }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+		else
+			tween(sl.g, 0.35, { Position = sl.home }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+		end
+	end
+end
+
+local closePopup
+local function openPopup(p)
+	local st = popups[p]
+	for o, other in popups do
+		if o ~= p and other.open then
+			closePopup(o)
+		end
+	end
+	st.open = true
+	p.Visible = true
+	if st.scale then
+		st.scale.Scale = st.base * 0.2
+		tween(st.scale, 0.35, { Scale = st.base }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	end
+	refresh()
+end
+function closePopup(p)
+	local st = popups[p]
+	if not st.open then
+		return
+	end
+	st.open = false
+	if st.scale then
+		local tw = tween(st.scale, 0.2, { Scale = st.base * 0.2 }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+		tw.Completed:Connect(function()
+			if not st.open then
+				p.Visible = false
+			end
+		end)
+	else
+		p.Visible = false
+	end
+	refresh()
+end
+
+-- buttons: hover/press scale only the inner Visual (from its centre, nothing
+-- else moves); Opens toggles a popup (or any frame); Close closes its parent
 local function hook(b)
 	if not b:IsA("GuiButton") then
 		return
 	end
-	-- only the inner Visual scales, from its centre, so nothing else moves
 	local visual = b:FindFirstChild("Visual")
 	local s = visual and visual:FindFirstChild("PressScale")
 	if s then
 		local function to(v)
-			TweenService:Create(s, TweenInfo.new(0.08, Enum.EasingStyle.Quad), { Scale = v }):Play()
+			tween(s, 0.08, { Scale = v })
 		end
 		b.MouseEnter:Connect(function() to(1.06) end)
 		b.MouseLeave:Connect(function() to(1) end)
@@ -1918,14 +2743,24 @@ local function hook(b)
 	if opens then
 		b.Activated:Connect(function()
 			local m = gui:FindFirstChild(opens, true)
-			if m then
+			if m and popups[m] then
+				if popups[m].open then
+					closePopup(m)
+				else
+					openPopup(m)
+				end
+			elseif m then
 				m.Visible = not m.Visible
 			end
 		end)
 	end
 	if b.Name == "Close" and b.Parent and b.Parent:IsA("GuiObject") then
 		b.Activated:Connect(function()
-			b.Parent.Visible = false
+			if popups[b.Parent] then
+				closePopup(b.Parent)
+			else
+				b.Parent.Visible = false
+			end
 		end)
 	end
 end
@@ -1934,6 +2769,7 @@ for _, d in gui:GetDescendants() do
 	hook(d)
 end
 gui.DescendantAdded:Connect(hook)
+refresh()
 ]]
 
 -- The HUD, laid out like QM's reference: Shop + square grid at the left,
@@ -1963,8 +2799,9 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		Size = UDim2.fromOffset(264, 96 + 8 + 128 * 3 + 8 * 2),
 		Parent = gui,
 	})
+	left:SetAttribute("Slide", "Left") -- slides off this way while a popup is open
 	new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = left })
-	UI.rectButton({ Name = "Shop", Text = "Shop", Icon = A.Shop, Color = C.ShopGold, Opens = "ShopModal", LayoutOrder = 1, Parent = left })
+	UI.rectButton({ Name = "Shop", Text = "Shop", Icon = A.Shop, Color = C.ShopGold, Opens = "ShopPopup", LayoutOrder = 1, Parent = left })
 	local grid = new("Frame", { Name = "Buttons", BackgroundTransparency = 1, Size = UDim2.fromOffset(264, 128 * 3 + 8 * 2), LayoutOrder = 2, ZIndex = 2, Parent = left })
 	-- ZIndex 2: the Rebirth badge pokes up over the Shop button's bottom edge
 	new("UIGridLayout", {
@@ -1975,14 +2812,14 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 	})
 	local squares = {
 		{ "Auras", A.Aura },
-		{ "Rebirth", A.Rebirth, "97%" },
+		{ "Rebirth", A.Rebirth, "97%", "RebirthPopup" },
 		{ "Pets", A.Pet },
 		{ "Trails", A.Trails },
 		{ "Inventory", A.Inventory },
-		{ "Gifts", A.Gifts },
+		{ "Gifts", A.Gifts, nil, nil, true },
 	}
 	for i, sq in squares do
-		UI.squareButton({ Name = sq[1], Icon = sq[2], Badge = sq[3], LayoutOrder = i, Parent = grid })
+		UI.squareButton({ Name = sq[1], Icon = sq[2], Badge = sq[3], Opens = sq[4], Notify = sq[5], LayoutOrder = i, Parent = grid })
 	end
 
 	-- bottom-left: counters, trophy first (Figma v2), 8px apart
@@ -1994,6 +2831,7 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		Size = UDim2.fromOffset(240, 70 * 2 + 8),
 		Parent = gui,
 	})
+	counters:SetAttribute("Slide", "Left") -- slides off this way while a popup is open
 	new("UIScale", { Name = "GroupScale", Scale = UI.CounterScale, Parent = counters })
 	new("UIListLayout", {
 		Padding = UDim.new(0, 8),
@@ -2010,10 +2848,11 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 		Name = "Bottom",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -44),
+		Position = UDim2.new(0.5, 0, 1, -22), -- QM: closer to the bottom
 		Size = UDim2.fromOffset(UI.BarWidth, 161 + 12 + 74),
 		Parent = gui,
 	})
+	bottom:SetAttribute("Slide", "Down") -- slides off this way while a popup is open
 	new("UIScale", { Name = "GroupScale", Scale = UI.BottomScale, Parent = bottom })
 	UI.progress({ Name = "Progress", Skill = "1.2M", Multiplier = "7x", Level = 80, Value = "1.2k/3.05k", Fill = 0.39, Parent = bottom })
 	local buys = new("Frame", {
@@ -2036,23 +2875,9 @@ function UI.buildHUD(parent: Instance, modalVisible: boolean?)
 	UI.buyButton({ Name = "Buy100M", Text = "+100M", Color = C.BuyRed, Shade = C.ShadeIndigo, LayoutOrder = 2, Parent = buys })
 	UI.buyButton({ Name = "Buy1B", Text = "+1B", Color = C.Magenta, Shade = C.ShadeIndigo, LayoutOrder = 3, Parent = buys })
 
-	-- the general modal, here as the shop
-	local _, content = UI.modal({ Name = "ShopModal", Title = "Shop", Visible = modalVisible == true, Parent = gui })
-	local items = {
-		{ "Auras", A.Aura, C.Purple },
-		{ "Pets", A.Pet, C.Orange },
-		{ "Wins", A.Trophy, C.Yellow },
-		{ "Rebirth", A.Rebirth, C.Blue },
-		{ "Skill", A.Muscle, C.Magenta },
-		{ "Basket", A.Shop, C.Red },
-		{ "Mega Pet", A.Pet, C.Purple },
-		{ "x2 Wins", A.Trophy, C.Orange },
-		{ "Power", A.Muscle, C.BuyRed },
-		{ "Aura+", A.Aura, C.Blue },
-	}
-	for i, it in items do
-		UI.squareButton({ Name = it[1], Icon = it[2], Color = it[3], Text = it[1], LayoutOrder = i, Parent = content })
-	end
+	-- popups (Figma v3): Shop opens ShopPopup, the Rebirth square RebirthPopup
+	UI.shopPopup({ Visible = modalVisible == true, Parent = gui })
+	UI.rebirthPopup({ Parent = gui })
 
 	local controller = Instance.new("LocalScript")
 	controller.Name = "HUDController"
@@ -2077,6 +2902,11 @@ function UI.buildTemplates(parent: Instance)
 	UI.progress({ Name = "Progress", Parent = folder })
 	UI.buyButton({ Name = "BuyButton", Text = "+10M", Parent = folder })
 	UI.modal({ Name = "Modal", Title = "Title", Parent = folder })
+	UI.popup({ Name = "Popup", Title = "Title", Icon = A.Shop, Parent = folder })
+	UI.shopPopup({ Name = "ShopPopup", Parent = folder })
+	UI.rebirthPopup({ Name = "RebirthPopup", Parent = folder })
+	local n = new("Frame", { Name = "NotificationHolder", BackgroundTransparency = 1, Size = UDim2.fromOffset(128, 128), Parent = folder })
+	UI.notification(n)
 	folder.Parent = parent
 	return folder
 end
