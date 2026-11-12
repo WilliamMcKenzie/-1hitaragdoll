@@ -47,6 +47,19 @@ function Template.build(uiSource: string?)
 	local L = Template.Lighting
 	L.SkyAsset = nil
 	L.ColorCorrection.Saturation = 0 -- colours are already fully saturated
+	-- QM's lighting (set by hand in Studio, 2026-11-12): white ambient, soft style
+	local LS = L.Settings :: any
+	LS.Brightness = 1
+	LS.Ambient = Color3.fromRGB(255, 255, 255)
+	LS.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+	LS.ColorShift_Top = Color3.fromRGB(0, 0, 0)
+	LS.ColorShift_Bottom = Color3.fromRGB(0, 0, 0)
+	LS.EnvironmentDiffuseScale = 1
+	LS.EnvironmentSpecularScale = 0
+	LS.GlobalShadows = true
+	pcall(function()
+		LS.LightingStyle = (Enum :: any).LightingStyle.Soft
+	end)
 	L.apply()
 	Template.Sky.apply()
 
